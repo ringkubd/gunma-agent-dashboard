@@ -1,0 +1,39 @@
+{
+  "name": "@gunma/agent-dashboard",
+  "version": "1.0.0",
+  "description": "Admin monitoring and control dashboard for Gunma AI Agent",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "files": [
+    "dist",
+    "styles.css"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./styles.css": "./styles.css"
+  },
+  "dependencies": {
+    "axios": "^1.6.7",
+    "laravel-echo": "^1.15.3",
+    "pusher-js": "^8.4.0",
+    "lucide-react": "^0.330.0"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "typescript": "^5.3.3"
+  }
+}
