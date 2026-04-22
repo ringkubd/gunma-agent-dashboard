@@ -1,31 +1,39 @@
-# Gunma Agent Dashboard
+# gunma-agent-dashboard
 
-A monitoring and management interface for the Gunma AI Agent.
+The official admin monitoring and control dashboard for the Gunma AI Agent (Piku).
 
 ## Features
-- **Live Monitoring**: View active chat sessions in real-time.
-- **Human Takeover**: Disable AI for specific sessions and respond manually.
-- **Session History**: Review past conversations and tool call results.
+- **Live Chat Monitor**: Watch real-time interactions between Piku and customers.
+- **AI/Manual Toggle**: Seamlessly take over conversations or pause AI on a per-session basis.
+- **Support Ticket Management**: Centralized view for claims, cancellations, and payment issues.
+- **Real-time Analytics**: Monitor total sessions, active AI, and pending tickets.
+- **Customer Insights**: View cart contents, points balance, and loyalty history.
+
+## Installation
+```bash
+npm install gunma-agent-dashboard
+```
 
 ## Usage
-
 ```tsx
-import { AgentDashboard } from '@gunma/agent-dashboard';
+import { AgentDashboard } from 'gunma-agent-dashboard';
+import 'gunma-agent-dashboard/styles.css';
 
-function AdminPage() {
+function App() {
   return (
-    <div className="p-8">
-      <AgentDashboard apiUrl="https://your-api.com/api/admin/chat" />
-    </div>
+    <AgentDashboard 
+      apiUrl="https://your-api-domain.com" 
+      pollInterval={10000} 
+    />
   );
 }
 ```
 
-## Styling
-The dashboard uses CSS variables for easy theming. You can override them in your global CSS:
-```css
-:root {
-  --gunma-primary: #10b981;
-  --gunma-sidebar-bg: #f9fafb;
-}
+## CSS Integration
+Make sure to import the styles in your main entry point:
+```javascript
+import 'gunma-agent-dashboard/styles.css';
 ```
+
+## License
+MIT © Anwar

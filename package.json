@@ -1,5 +1,5 @@
 {
-  "name": "@gunma/agent-dashboard",
+  "name": "gunma-agent-dashboard",
   "version": "1.0.0",
   "description": "Admin monitoring and control dashboard for Gunma AI Agent",
   "main": "dist/index.js",
