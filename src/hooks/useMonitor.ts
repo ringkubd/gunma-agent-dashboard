@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import Echo from 'laravel-echo';
@@ -77,7 +79,7 @@ export function useMonitor(apiUrl: string, options: UseMonitorOptions = {}) {
 
         const url = new URL(apiUrl);
         try {
-            const token = typeof window !== 'undefined' ? localStorage.getItem('tk') : null;
+            const token = typeof window !== 'undefined' ? (localStorage.getItem('token') || localStorage.getItem('tk')) : null;
 
             echoRef.current = new Echo({
                 broadcaster: 'pusher',
@@ -99,6 +101,7 @@ export function useMonitor(apiUrl: string, options: UseMonitorOptions = {}) {
             console.warn('[useChat] Echo init failed:', err);
         }
 
+        if (!echoRef.current) return;
         const channel = echoRef.current.private('gunma-admin.chats');
 
         channel.listen('.message.new', (data: ChatMessage) => {
