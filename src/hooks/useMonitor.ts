@@ -102,10 +102,6 @@ export function useMonitor(apiUrl: string, options: UseMonitorOptions = {}) {
             const authTokenRaw = localStorage.getItem('token') || localStorage.getItem('tk');
             const authToken = authTokenRaw ? (authTokenRaw.startsWith('Bearer ') ? authTokenRaw : `Bearer ${authTokenRaw}`) : '';
 
-            if (!authToken) {
-                console.warn('[useMonitor] No auth token found in localStorage');
-            }
-
             // 3. Initialize Echo
             (window as any).Pusher = Pusher;
             const url = new URL(apiUrl);
@@ -123,13 +119,17 @@ export function useMonitor(apiUrl: string, options: UseMonitorOptions = {}) {
                     authEndpoint: process.env.NEXT_PUBLIC_PUSHER_AUTH_ENDPOINT || `${url.origin}/api/broadcasting/auth`,
                     auth: {
                         headers: {
-                            Authorization: authToken,
                             'Accept': 'application/json'
                         }
                     }
                 };
 
-                // Only add X-XSRF-TOKEN if we have it
+                // Add Authorization header if token exists (Token-based)
+                if (authToken) {
+                    echoOptions.auth.headers['Authorization'] = authToken;
+                }
+
+                // Add X-XSRF-TOKEN if we have it (Cookie-based / CSRF protection)
                 if (csrfToken) {
                     echoOptions.auth.headers['X-XSRF-TOKEN'] = csrfToken;
                 }
