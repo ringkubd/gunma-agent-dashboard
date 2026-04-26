@@ -72,113 +72,142 @@ export function useMonitor(apiUrl: string, options: UseMonitorOptions = {}) {
         activeSessionIdRef.current = activeSession?.id ?? null;
     }, [activeSession?.id]);
 
-    // Initialize Echo
+    // Initialize Echo & CSRF
     useEffect(() => {
         if (typeof window === 'undefined') return;
-        (window as any).Pusher = Pusher;
 
-        const url = new URL(apiUrl);
-        try {
-            const token = typeof window !== 'undefined' ? (localStorage.getItem('token') || localStorage.getItem('tk')) : null;
+        const initSession = async () => {
+            // 1. Get CSRF Cookie first
+            try {
+                await axios.get(`${apiUrl}/sanctum/csrf-cookie`, { withCredentials: true });
+            } catch (err) {
+                console.warn('[useMonitor] CSRF init failed:', err);
+            }
 
-            echoRef.current = new Echo({
-                broadcaster: 'pusher',
-                key: process.env.NEXT_PUBLIC_PUSHER_KEY || '3e004c455a5824baf3a03f6d9cc6bcc5',
-                cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'mt1',
-                wsHost: process.env.NEXT_PUBLIC_PUSHER_HOST || 'localhost',
-                wsPort: Number(process.env.NEXT_PUBLIC_PUSHER_PORT || 6001),
-                forceTLS: process.env.NEXT_PUBLIC_PUSHER_FORCE_TLS === 'true',
-                enabledTransports: ['ws', 'wss'],
-                disableStats: true,
-                authEndpoint: process.env.NEXT_PUBLIC_PUSHER_AUTH_ENDPOINT || `${url.origin}/api/broadcasting/auth`,
-                auth: {
-                    headers: {
-                        Authorization: token ? `Bearer ${token}` : '',
-                    }
+            // 2. Setup Axios defaults
+            axios.defaults.withCredentials = true;
+            
+            const getCsrfToken = () => {
+                const name = 'XSRF-TOKEN=';
+                const decodedCookie = decodeURIComponent(document.cookie);
+                const ca = decodedCookie.split(';');
+                for (let i = 0; i < ca.length; i++) {
+                    let c = ca[i].trim();
+                    if (c.indexOf(name) === 0) return c.substring(name.length, c.length);
                 }
-            });
-        } catch (err) {
-            console.warn('[useChat] Echo init failed:', err);
-        }
+                return '';
+            };
 
-        if (!echoRef.current) return;
-        const channel = echoRef.current.private('gunma-admin.chats');
+            const csrfToken = getCsrfToken();
+            const authToken = localStorage.getItem('token') || localStorage.getItem('tk');
 
-        channel.listen('.message.new', (data: ChatMessage) => {
-            // Update session list order
-            setSessions(prev => {
-                const index = prev.findIndex(s => s.id === data.session_id);
-                if (index === -1) return prev; // Optionally fetch new session
-                const newSessions = [...prev];
-                const session = { ...newSessions[index], updated_at: data.created_at };
-                newSessions.splice(index, 1);
-                return [session, ...newSessions];
-            });
+            // 3. Initialize Echo
+            (window as any).Pusher = Pusher;
+            const url = new URL(apiUrl);
 
-            // Track unread for non-active sessions
-            if (activeSessionIdRef.current !== data.session_id) {
-                setUnreadCounts(prev => ({
-                    ...prev,
-                    [data.session_id]: (prev[data.session_id] || 0) + 1,
-                }));
-            }
-
-            // If it's the active session, add message
-            if (activeSessionIdRef.current === data.session_id) {
-                setMessages(prev => {
-                    if (prev.some(m => m.id === data.id)) return prev;
-                    return [...prev, data];
-                });
-            }
-        });
-
-        channel.listen('.ai.status_changed', (data: any) => {
-            setSessions(prev => prev.map(s =>
-                s.id === data.session_id ? { ...s, is_ai_enabled: data.is_ai_enabled } : s
-            ));
-            setActiveSession(prev => {
-                if (!prev || prev.id !== data.session_id) return prev;
-                if (prev.is_ai_enabled === data.is_ai_enabled) return prev;
-                return { ...prev, is_ai_enabled: data.is_ai_enabled };
-            });
-        });
-
-        channel.listen('.tool.executing', (data: any) => {
-            setToolStatus(prev => ({
-                ...prev,
-                [data.session_id]: data.message || 'Thinking...'
-            }));
-        });
-
-        channel.listen('.priority.updated', (data: any) => {
-            setSessions(prev => {
-                const newSessions = prev.map(s => {
-                    if (s.id === data.session_id) {
-                        const metadata = { ...(s as any).metadata || {} };
-                        metadata.priority_score = data.priority_score;
-                        return { ...s, metadata };
+            try {
+                echoRef.current = new Echo({
+                    broadcaster: 'pusher',
+                    key: process.env.NEXT_PUBLIC_PUSHER_KEY || '3e004c455a5824baf3a03f6d9cc6bcc5',
+                    cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'mt1',
+                    wsHost: process.env.NEXT_PUBLIC_PUSHER_HOST || 'localhost',
+                    wsPort: Number(process.env.NEXT_PUBLIC_PUSHER_PORT || 6001),
+                    forceTLS: process.env.NEXT_PUBLIC_PUSHER_FORCE_TLS === 'true',
+                    enabledTransports: ['ws', 'wss'],
+                    disableStats: true,
+                    authEndpoint: process.env.NEXT_PUBLIC_PUSHER_AUTH_ENDPOINT || `${url.origin}/api/broadcasting/auth`,
+                    auth: {
+                        headers: {
+                            Authorization: authToken ? `Bearer ${authToken}` : '',
+                            'X-XSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json'
+                        }
                     }
-                    return s;
                 });
 
-                // Move high priority to top
-                return newSessions.sort((a, b) => {
-                    const scoreA = (a as any).metadata?.priority_score || 0;
-                    const scoreB = (b as any).metadata?.priority_score || 0;
-                    return scoreB - scoreA;
-                });
-            });
-        });
+                if (echoRef.current) {
+                    const channel = echoRef.current.private('gunma-admin.chats');
+                    
+                    channel.listen('.message.new', (data: ChatMessage) => {
+                        setSessions(prev => {
+                            const index = prev.findIndex(s => s.id === data.session_id);
+                            if (index === -1) return prev;
+                            const newSessions = [...prev];
+                            const session = { ...newSessions[index], updated_at: data.created_at };
+                            newSessions.splice(index, 1);
+                            return [session, ...newSessions];
+                        });
 
-        channel.listen('.message.new', (data: any) => {
-            setToolStatus(prev => {
-                const next = { ...prev };
-                delete next[data.session_id];
-                return next;
-            });
-        });
+                        if (activeSessionIdRef.current !== data.session_id) {
+                            setUnreadCounts(prev => ({
+                                ...prev,
+                                [data.session_id]: (prev[data.session_id] || 0) + 1,
+                            }));
+                        }
 
-        return () => echoRef.current?.disconnect();
+                        if (activeSessionIdRef.current === data.session_id) {
+                            setMessages(prev => {
+                                if (prev.some(m => m.id === data.id)) return prev;
+                                return [...prev, data];
+                            });
+                        }
+
+                        setToolStatus(prev => {
+                            const next = { ...prev };
+                            delete next[data.session_id];
+                            return next;
+                        });
+                    });
+
+                    channel.listen('.ai.status_changed', (data: any) => {
+                        setSessions(prev => prev.map(s =>
+                            s.id === data.session_id ? { ...s, is_ai_enabled: data.is_ai_enabled } : s
+                        ));
+                        setActiveSession(prev => {
+                            if (!prev || prev.id !== data.session_id) return prev;
+                            if (prev.is_ai_enabled === data.is_ai_enabled) return prev;
+                            return { ...prev, is_ai_enabled: data.is_ai_enabled };
+                        });
+                    });
+
+                    channel.listen('.tool.executing', (data: any) => {
+                        setToolStatus(prev => ({
+                            ...prev,
+                            [data.session_id]: data.message || 'Thinking...'
+                        }));
+                    });
+
+                    channel.listen('.priority.updated', (data: any) => {
+                        setSessions(prev => {
+                            const newSessions = prev.map(s => {
+                                if (s.id === data.session_id) {
+                                    const metadata = { ...(s as any).metadata || {} };
+                                    metadata.priority_score = data.priority_score;
+                                    return { ...s, metadata };
+                                }
+                                return s;
+                            });
+
+                            return newSessions.sort((a, b) => {
+                                const scoreA = (a as any).metadata?.priority_score || 0;
+                                const scoreB = (b as any).metadata?.priority_score || 0;
+                                return scoreB - scoreA;
+                            });
+                        });
+                    });
+                }
+            } catch (err) {
+                console.warn('[useChat] Echo init failed:', err);
+            }
+        };
+
+        initSession();
+
+        return () => {
+            if (echoRef.current) {
+                echoRef.current.disconnect();
+            }
+        };
     }, [apiUrl]);
 
     // Auto-polling for session list refresh
