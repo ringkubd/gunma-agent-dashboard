@@ -99,14 +99,19 @@ export function useMonitor(apiUrl: string, options: UseMonitorOptions = {}) {
             };
 
             const csrfToken = getCsrfToken();
-            const authToken = localStorage.getItem('token') || localStorage.getItem('tk');
+            const authTokenRaw = localStorage.getItem('token') || localStorage.getItem('tk');
+            const authToken = authTokenRaw ? (authTokenRaw.startsWith('Bearer ') ? authTokenRaw : `Bearer ${authTokenRaw}`) : '';
+
+            if (!authToken) {
+                console.warn('[useMonitor] No auth token found in localStorage');
+            }
 
             // 3. Initialize Echo
             (window as any).Pusher = Pusher;
             const url = new URL(apiUrl);
 
             try {
-                echoRef.current = new Echo({
+                const echoOptions: any = {
                     broadcaster: 'pusher',
                     key: process.env.NEXT_PUBLIC_PUSHER_KEY || '3e004c455a5824baf3a03f6d9cc6bcc5',
                     cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'mt1',
@@ -118,12 +123,18 @@ export function useMonitor(apiUrl: string, options: UseMonitorOptions = {}) {
                     authEndpoint: process.env.NEXT_PUBLIC_PUSHER_AUTH_ENDPOINT || `${url.origin}/api/broadcasting/auth`,
                     auth: {
                         headers: {
-                            Authorization: authToken ? `Bearer ${authToken}` : '',
-                            'X-XSRF-TOKEN': csrfToken,
+                            Authorization: authToken,
                             'Accept': 'application/json'
                         }
                     }
-                });
+                };
+
+                // Only add X-XSRF-TOKEN if we have it
+                if (csrfToken) {
+                    echoOptions.auth.headers['X-XSRF-TOKEN'] = csrfToken;
+                }
+
+                echoRef.current = new Echo(echoOptions);
 
                 if (echoRef.current) {
                     const channel = echoRef.current.private('gunma-admin.chats');
