@@ -19,39 +19,56 @@ export function useMonitor(apiUrl, options = {}) {
     useEffect(() => {
         activeSessionIdRef.current = activeSession?.id ?? null;
     }, [activeSession?.id]);
+    // Create dedicated axios instance for this hook
+    const api = useRef(axios.create({
+        baseURL: apiUrl,
+        withCredentials: true,
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+        }
+    })).current;
+    // Sync instance headers with localStorage (Token support)
+    useEffect(() => {
+        const authTokenRaw = localStorage.getItem('token') || localStorage.getItem('tk');
+        const authToken = authTokenRaw ? (authTokenRaw.startsWith('Bearer ') ? authTokenRaw : `Bearer ${authTokenRaw}`) : '';
+        if (authToken) {
+            api.defaults.headers.common['Authorization'] = authToken;
+        }
+        // Add CSRF header from cookie if present
+        const getCsrfToken = () => {
+            const name = 'XSRF-TOKEN=';
+            const decodedCookie = decodeURIComponent(document.cookie);
+            const ca = decodedCookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+                let c = ca[i].trim();
+                if (c.indexOf(name) === 0)
+                    return c.substring(name.length, c.length);
+            }
+            return '';
+        };
+        const csrfToken = getCsrfToken();
+        if (csrfToken) {
+            api.defaults.headers.common['X-XSRF-TOKEN'] = csrfToken;
+        }
+    }, [apiUrl]);
     // Initialize Echo & CSRF
     useEffect(() => {
         if (typeof window === 'undefined')
             return;
         const initSession = async () => {
-            // 1. Get CSRF Cookie first
+            // 1. Get CSRF Cookie first for Sanctum
             try {
-                await axios.get(`${apiUrl}/sanctum/csrf-cookie`, { withCredentials: true });
+                await api.get('/sanctum/csrf-cookie');
             }
             catch (err) {
                 console.warn('[useMonitor] CSRF init failed:', err);
             }
-            // 2. Setup Axios defaults
-            axios.defaults.withCredentials = true;
-            const getCsrfToken = () => {
-                const name = 'XSRF-TOKEN=';
-                const decodedCookie = decodeURIComponent(document.cookie);
-                const ca = decodedCookie.split(';');
-                for (let i = 0; i < ca.length; i++) {
-                    let c = ca[i].trim();
-                    if (c.indexOf(name) === 0)
-                        return c.substring(name.length, c.length);
-                }
-                return '';
-            };
-            const csrfToken = getCsrfToken();
-            const authTokenRaw = localStorage.getItem('token') || localStorage.getItem('tk');
-            const authToken = authTokenRaw ? (authTokenRaw.startsWith('Bearer ') ? authTokenRaw : `Bearer ${authTokenRaw}`) : '';
-            // 3. Initialize Echo
+            // 2. Initialize Echo
             window.Pusher = Pusher;
             const url = new URL(apiUrl);
             try {
-                const echoOptions = {
+                echoRef.current = new Echo({
                     broadcaster: 'pusher',
                     key: process.env.NEXT_PUBLIC_PUSHER_KEY || '3e004c455a5824baf3a03f6d9cc6bcc5',
                     cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'mt1',
@@ -60,22 +77,24 @@ export function useMonitor(apiUrl, options = {}) {
                     forceTLS: process.env.NEXT_PUBLIC_PUSHER_FORCE_TLS === 'true',
                     enabledTransports: ['ws', 'wss'],
                     disableStats: true,
-                    authEndpoint: process.env.NEXT_PUBLIC_PUSHER_AUTH_ENDPOINT || `${url.origin}/api/broadcasting/auth`,
-                    auth: {
-                        headers: {
-                            'Accept': 'application/json'
-                        }
+                    // Use a standard authorizer to ensure it uses our axios instance
+                    authorizer: (channel) => {
+                        return {
+                            authorize: (socketId, callback) => {
+                                api.post('/api/broadcasting/auth', {
+                                    socket_id: socketId,
+                                    channel_name: channel.name
+                                })
+                                    .then(response => {
+                                    callback(false, response.data);
+                                })
+                                    .catch(error => {
+                                    callback(true, error);
+                                });
+                            }
+                        };
                     }
-                };
-                // Add Authorization header if token exists (Token-based)
-                if (authToken) {
-                    echoOptions.auth.headers['Authorization'] = authToken;
-                }
-                // Add X-XSRF-TOKEN if we have it (Cookie-based / CSRF protection)
-                if (csrfToken) {
-                    echoOptions.auth.headers['X-XSRF-TOKEN'] = csrfToken;
-                }
-                echoRef.current = new Echo(echoOptions);
+                });
                 if (echoRef.current) {
                     const channel = echoRef.current.private('gunma-admin.chats');
                     channel.listen('.message.new', (data) => {
@@ -169,7 +188,7 @@ export function useMonitor(apiUrl, options = {}) {
     const fetchSessions = useCallback(async () => {
         setIsLoading(true);
         try {
-            const res = await axios.get(`${apiUrl}/api/admin/chat/sessions`);
+            const res = await api.get('/api/admin/chat/sessions');
             setSessions(res.data.data);
         }
         finally {
@@ -179,7 +198,7 @@ export function useMonitor(apiUrl, options = {}) {
     const fetchTickets = useCallback(async (status) => {
         setIsLoading(true);
         try {
-            const res = await axios.get(`${apiUrl}/api/admin/chat/tickets`, { params: { status } });
+            const res = await api.get('/api/admin/chat/tickets', { params: { status } });
             setTickets(res.data.data);
         }
         finally {
@@ -187,12 +206,12 @@ export function useMonitor(apiUrl, options = {}) {
         }
     }, [apiUrl]);
     const updateTicketStatus = useCallback(async (ticketId, status) => {
-        await axios.post(`${apiUrl}/api/admin/chat/tickets/${ticketId}/status`, { status });
+        await api.post(`/api/admin/chat/tickets/${ticketId}/status`, { status });
         setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: status } : t));
     }, [apiUrl]);
     const fetchStats = useCallback(async () => {
         try {
-            const res = await axios.get(`${apiUrl}/api/admin/chat/stats`);
+            const res = await api.get('/api/admin/chat/stats');
             setStats(res.data);
         }
         catch (err) {
@@ -207,17 +226,17 @@ export function useMonitor(apiUrl, options = {}) {
             delete next[session.id];
             return next;
         });
-        const res = await axios.get(`${apiUrl}/api/admin/chat/sessions/${session.id}`);
+        const res = await api.get(`/api/admin/chat/sessions/${session.id}`);
         setMessages(res.data.messages || []);
     }, [apiUrl]);
     const toggleAi = useCallback(async (sessionId, enabled) => {
-        await axios.post(`${apiUrl}/api/admin/chat/sessions/${sessionId}/toggle-ai`, { enabled });
+        await api.post(`/api/admin/chat/sessions/${sessionId}/toggle-ai`, { enabled });
     }, [apiUrl]);
     const sendManualMessage = useCallback(async (sessionId, message) => {
-        await axios.post(`${apiUrl}/api/admin/chat/sessions/${sessionId}/messages`, { message });
+        await api.post(`/api/admin/chat/sessions/${sessionId}/messages`, { message });
     }, [apiUrl]);
     const endSession = useCallback(async (sessionId) => {
-        await axios.post(`${apiUrl}/api/chat/sessions/${sessionId}/end`);
+        await api.post(`/api/chat/sessions/${sessionId}/end`);
         // Remove from sessions list
         setSessions(prev => prev.filter(s => s.id !== sessionId));
         // Clear active if it's the ended session
