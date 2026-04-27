@@ -50,6 +50,7 @@ export declare function useMonitor(apiUrl: string, options?: UseMonitorOptions):
     isLoading: boolean;
     unreadCounts: Record<string, number>;
     toolStatus: Record<string, string>;
+    typingSessions: Record<string, boolean>;
     fetchSessions: () => Promise<void>;
     fetchTickets: (status?: string) => Promise<void>;
     updateTicketStatus: (ticketId: string, status: string) => Promise<void>;
@@ -57,5 +58,6 @@ export declare function useMonitor(apiUrl: string, options?: UseMonitorOptions):
     selectSession: (session: ChatSession) => Promise<void>;
     toggleAi: (sessionId: string, enabled: boolean) => Promise<void>;
     sendManualMessage: (sessionId: string, message: string) => Promise<void>;
+    sendTyping: (sessionId: string, isTyping: boolean) => Promise<void>;
     endSession: (sessionId: string) => Promise<void>;
 };

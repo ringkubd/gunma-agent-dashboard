@@ -45,6 +45,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
         isLoading, 
         unreadCounts,
         toolStatus,
+        typingSessions,
         fetchSessions, 
         fetchTickets,
         updateTicketStatus,
@@ -52,6 +53,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
         selectSession, 
         toggleAi, 
         sendManualMessage,
+        sendTyping,
         endSession
     } = useMonitor(apiUrl, { pollInterval });
 
@@ -60,6 +62,107 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
     const [search, setSearch] = useState('');
     const [filter, setFilter] = useState<SessionFilter>('all');
     const [confirmEndId, setConfirmEndId] = useState<string | null>(null);
+    const typingTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+    const isTypingRef = React.useRef(false);
+
+    const renderMarkdown = (text: string): string => {
+        if (!text) return '';
+
+        // ── Step 1: Extract and replace product blocks ──
+        const productBlocks: string[] = [];
+        const websiteUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://gunmahalalfood.com';
+
+        // Use /s flag to allow dot to match newlines inside the product block
+        text = text.replace(/:{2,3}product\[(.*?)\|(.*?)\|(.*?)\|(.*?)\|(.*?)\]:{2,3}/gs,
+            (_, id, title, price, image, slug) => {
+                const cleanId = id.trim();
+                const cleanTitle = title.trim();
+                const cleanPrice = price.trim().replace(/\.000$/, '').replace(/\.00$/, '');
+                const cleanImage = image.trim();
+                const cleanSlug = slug.trim();
+                
+                const card = `
+                <div class="gunma-product-mini-card" data-id="${cleanId}">
+                    <a href="${websiteUrl}/${cleanSlug}" target="_blank" rel="noopener" class="gunma-product-mini-img-link">
+                        <img src="${cleanImage}" alt="${cleanTitle}" loading="lazy"/>
+                    </a>
+                    <div class="gunma-product-mini-body">
+                        <span class="gunma-product-mini-title">${cleanTitle}</span>
+                        <div class="gunma-product-mini-footer">
+                            <span class="gunma-product-mini-price">৳${cleanPrice}</span>
+                        </div>
+                    </div>
+                </div>`;
+                productBlocks.push(card);
+                return `{{PRODUCT_CARD_${productBlocks.length - 1}}}`;
+            }
+        );
+
+        // ── Step 2: Extract the "Add ALL" bulk link ──
+        const bulkPattern = /\*?\*?\[?🛒 Add ALL Ingredients? to Cart\]?\(?[^)]*\)?\*?\*?/gi;
+        text = text.replace(bulkPattern, '');
+
+        // ── Step 3: Escape HTML (but NOT our placeholders) ──
+        text = text
+            .replace(/&(?!amp;)/g, '&amp;')
+            .replace(/<(?!(\/?(h[1-6]|br|strong|em|ul|li|p|div|span|hr|img|a|code|button)\b))/g, '&lt;');
+
+        // ── Step 4: Headers ──
+        text = text
+            .replace(/^### (.+)$/gm, '<h4 class="gunma-h4">$1</h4>')
+            .replace(/^## (.+)$/gm, '<h3 class="gunma-h3">$1</h3>')
+            .replace(/^# (.+)$/gm, '<h2 class="gunma-h2">$1</h2>');
+
+        // ── Step 5: Bold & italic ──
+        text = text
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*([^*\n]+?)\*/g, '<em>$1</em>');
+
+        // ── Step 6: Lists ──
+        text = text.replace(/^[-*•]\s+(.+)$/gm, '<li>$1</li>');
+        text = text.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul class="gunma-list">$1</ul>');
+
+        // ── Step 7: Step-by-step instructions ──
+        text = text.replace(/^(\d+)\.\s+(.+)$/gm,
+            (_, num, content) =>
+                `<div class="gunma-step"><span class="gunma-step-num">${num}</span><span>${content}</span></div>`
+        );
+
+        // ── Step 8: Images ──
+        text = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g,
+            '<img src="$2" alt="$1" class="gunma-msg-img" loading="lazy"/>');
+        
+        text = text.replace(/\[IMAGE:\s*(https?:\/\/[^\]]+)\]/g,
+            '<div class="gunma-msg-img-container"><img src="$1" alt="Uploaded image" class="gunma-msg-img gunma-msg-img--uploaded" loading="lazy"/></div>');
+
+        // ── Step 9: Links ──
+        text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g,
+            '<a href="$2" target="_blank" rel="noopener" class="gunma-link">$1</a>');
+
+        // ── Step 10: Horizontal rules ──
+        text = text.replace(/^---+$/gm, '<hr class="gunma-hr"/>');
+
+        // ── Step 11: Line breaks ──
+        text = text.replace(/\n/g, '<br/>');
+        text = text.replace(/(<\/div>|<\/ul>|<\/li>|<\/h[1-4]>|<hr\s?\/?>)<br\/>/g, '$1');
+        text = text.replace(/(<br\/>){2,}/g, '<br/>');
+
+        // ── Step 12: Restore product cards & wrap in grid if consecutive ──
+        productBlocks.forEach((card, i) => {
+            text = text.replace(`{{PRODUCT_CARD_${i}}}`, card);
+        });
+
+        // Smart Grid Wrapping
+        text = text.replace(
+            /(<div class="gunma-product-mini-card".*?<\/div>(\s|<br\/?>)*)+/g,
+            (match) => {
+                const cardsOnly = match.replace(/<br\/?>/g, '').trim();
+                return `<div class="gunma-product-grid">${cardsOnly}</div>`;
+            }
+        );
+
+        return text;
+    };
 
     useEffect(() => {
         fetchSessions();
@@ -96,8 +199,31 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
         e.preventDefault();
         if (!manualText.trim() || !activeSession) return;
         
+        if (isTypingRef.current) {
+            isTypingRef.current = false;
+            sendTyping(activeSession.id, false);
+        }
+
         await sendManualMessage(activeSession.id, manualText);
         setManualText('');
+    };
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setManualText(e.target.value);
+        if (!activeSession) return;
+
+        if (!isTypingRef.current) {
+            isTypingRef.current = true;
+            sendTyping(activeSession.id, true);
+        }
+
+        if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+        typingTimerRef.current = setTimeout(() => {
+            if (isTypingRef.current) {
+                isTypingRef.current = false;
+                sendTyping(activeSession.id, false);
+            }
+        }, 3000);
     };
 
     const handleEndSession = async (sessionId: string) => {
@@ -217,6 +343,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
                                         <div className="avatar">
                                             {s.channel === 'email' ? <Mail size={24} /> : <UserCircle size={24} />}
                                             {unreadCounts[s.id] > 0 && <span className="unread-badge">{unreadCounts[s.id]}</span>}
+                                            {s.status === 'active' && <span className="status-dot online" />}
                                         </div>
                                         <div className="session-info">
                                             <div className="session-top">
@@ -228,6 +355,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
                                                 {(s as any).metadata?.priority_score > 50 && (
                                                     <span className="priority-tag critical">Urgent</span>
                                                 )}
+                                                {typingSessions[s.id] && <span className="typing-tag">Typing...</span>}
                                                 {!s.is_ai_enabled && s.status === 'active' && <span className="manual-tag">Manual</span>}
                                             </div>
                                         </div>
@@ -290,11 +418,12 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
                                             <button 
                                                 className={`ai-toggle ${activeSession.is_ai_enabled ? 'enabled' : 'disabled'}`}
                                                 onClick={() => toggleAi(activeSession.id, !activeSession.is_ai_enabled)}
+                                                title={activeSession.is_ai_enabled ? "Stop AI to reply manually" : "Let AI handle this chat"}
                                             >
                                                 {activeSession.is_ai_enabled ? (
-                                                    <><Bot size={18} /> AI Handling</>
+                                                    <><Pause size={18} /> Stop AI & Take Control</>
                                                 ) : (
-                                                    <><Pause size={18} /> Manual Mode</>
+                                                    <><Play size={18} /> Resume AI Handling</>
                                                 )}
                                             </button>
                                             
@@ -314,22 +443,10 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
                                                     {m.role === 'user' ? <User size={16} /> : <Bot size={16} />}
                                                 </div>
                                                 <div className="message-content">
-                                                    <div className="message-bubble">
-                                                        {m.content.includes('[IMAGE: ') ? (
-                                                            <div className="image-attachment">
-                                                                <ImageIcon size={14} /> 
-                                                                <span>Attachment</span>
-                                                                <img 
-                                                                    src={m.content.match(/\[IMAGE:\s*(.+?)\]/)?.[1]} 
-                                                                    alt="Attached" 
-                                                                    className="dashboard-msg-img"
-                                                                    onClick={() => window.open(m.content.match(/\[IMAGE:\s*(.+?)\]/)?.[1], '_blank')}
-                                                                />
-                                                            </div>
-                                                        ) : (
-                                                            m.content
-                                                        )}
-                                                    </div>
+                                                    <div 
+                                                        className="message-bubble"
+                                                        dangerouslySetInnerHTML={{ __html: renderMarkdown(m.content) }}
+                                                    />
                                                     <span className="timestamp">{new Date(m.created_at).toLocaleTimeString()}</span>
                                                 </div>
                                             </div>
@@ -340,6 +457,14 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
                                                 <span>{toolStatus[activeSession.id]}</span>
                                             </div>
                                         )}
+                                        {typingSessions[activeSession.id] && (
+                                            <div className="typing-indicator-row">
+                                                <div className="typing-dots">
+                                                    <span></span><span></span><span></span>
+                                                </div>
+                                                <span>Customer is typing...</span>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <form className="manual-input" onSubmit={handleSend}>
@@ -348,7 +473,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
                                                 type="text" 
                                                 placeholder={activeSession.is_ai_enabled ? "Pause AI to reply manually..." : "Type a message..."}
                                                 value={manualText}
-                                                onChange={(e) => setManualText(e.target.value)}
+                                                onChange={handleInputChange}
                                                 disabled={activeSession.is_ai_enabled}
                                             />
                                             <button type="submit" disabled={activeSession.is_ai_enabled || !manualText.trim()}>

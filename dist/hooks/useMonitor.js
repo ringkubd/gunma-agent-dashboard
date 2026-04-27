@@ -12,6 +12,7 @@ export function useMonitor(apiUrl, options = {}) {
     const [isLoading, setIsLoading] = useState(false);
     const [unreadCounts, setUnreadCounts] = useState({});
     const [toolStatus, setToolStatus] = useState({});
+    const [typingSessions, setTypingSessions] = useState({});
     const echoRef = useRef(null);
     const activeSessionIdRef = useRef(null);
     const pollIntervalRef = useRef(null);
@@ -19,38 +20,36 @@ export function useMonitor(apiUrl, options = {}) {
     useEffect(() => {
         activeSessionIdRef.current = activeSession?.id ?? null;
     }, [activeSession?.id]);
-    // Create dedicated axios instance for this hook
+    // Create dedicated axios instance for this hook, mirroring admin_dashboard/src/helpers/axios/axiosInstance.ts
     const api = useRef(axios.create({
         baseURL: apiUrl,
         withCredentials: true,
-        headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-        }
+        timeout: 60000,
     })).current;
-    // Sync instance headers with localStorage (Token support)
+    // Standard headers mirroring host application
+    api.defaults.headers.post["Content-Type"] = "application/json";
+    api.defaults.headers["Accept"] = "application/json";
+    api.defaults.withXSRFToken = true;
+    // Request Interceptor mirroring host application
     useEffect(() => {
-        const authTokenRaw = localStorage.getItem('token') || localStorage.getItem('tk');
-        const authToken = authTokenRaw ? (authTokenRaw.startsWith('Bearer ') ? authTokenRaw : `Bearer ${authTokenRaw}`) : '';
-        if (authToken) {
-            api.defaults.headers.common['Authorization'] = authToken;
-        }
-        // Add CSRF header from cookie if present
-        const getCsrfToken = () => {
-            const name = 'XSRF-TOKEN=';
-            const decodedCookie = decodeURIComponent(document.cookie);
-            const ca = decodedCookie.split(';');
-            for (let i = 0; i < ca.length; i++) {
-                let c = ca[i].trim();
-                if (c.indexOf(name) === 0)
-                    return c.substring(name.length, c.length);
+        const interceptor = api.interceptors.request.use((config) => {
+            // 1. Authorization header
+            const authTokenRaw = localStorage.getItem('token') || localStorage.getItem('tk');
+            const authToken = authTokenRaw ? (authTokenRaw.startsWith('Bearer ') ? authTokenRaw : `Bearer ${authTokenRaw}`) : '';
+            if (authToken) {
+                config.headers.Authorization = authToken;
             }
-            return '';
-        };
-        const csrfToken = getCsrfToken();
-        if (csrfToken) {
-            api.defaults.headers.common['X-XSRF-TOKEN'] = csrfToken;
-        }
+            // 2. XSRF-TOKEN header from cookies
+            const cookieArray = document.cookie.split(";");
+            for (let i = 0; i < cookieArray.length; i++) {
+                const cookiePair = cookieArray[i].split("=");
+                if (cookiePair[0].trim() === "XSRF-TOKEN") {
+                    config.headers["X-XSRF-TOKEN"] = decodeURIComponent(cookiePair[1]);
+                }
+            }
+            return config;
+        }, (error) => Promise.reject(error));
+        return () => api.interceptors.request.eject(interceptor);
     }, [apiUrl]);
     // Initialize Echo & CSRF
     useEffect(() => {
@@ -115,12 +114,17 @@ export function useMonitor(apiUrl, options = {}) {
                         }
                         if (activeSessionIdRef.current === data.session_id) {
                             setMessages(prev => {
-                                if (prev.some(m => m.id === data.id))
+                                if (prev.some(m => String(m.id) === String(data.id)))
                                     return prev;
                                 return [...prev, data];
                             });
                         }
                         setToolStatus(prev => {
+                            const next = { ...prev };
+                            delete next[data.session_id];
+                            return next;
+                        });
+                        setTypingSessions(prev => {
                             const next = { ...prev };
                             delete next[data.session_id];
                             return next;
@@ -141,6 +145,14 @@ export function useMonitor(apiUrl, options = {}) {
                             ...prev,
                             [data.session_id]: data.message || 'Thinking...'
                         }));
+                    });
+                    channel.listen('.user.typing', (data) => {
+                        if (data.role === 'user') {
+                            setTypingSessions(prev => ({
+                                ...prev,
+                                [data.session_id]: data.is_typing
+                            }));
+                        }
                     });
                     channel.listen('.priority.updated', (data) => {
                         setSessions(prev => {
@@ -226,15 +238,77 @@ export function useMonitor(apiUrl, options = {}) {
             delete next[session.id];
             return next;
         });
-        const res = await api.get(`/api/admin/chat/sessions/${session.id}`);
-        setMessages(res.data.messages || []);
+        try {
+            // Fetch session with messages
+            const res = await api.get(`/api/admin/chat/sessions/${session.id}`);
+            // Handle different possible response structures
+            const sessionData = res.data.session || res.data;
+            const fetchedMessages = sessionData.messages || [];
+            setMessages(fetchedMessages);
+        }
+        catch (err) {
+            console.error('[useMonitor] Failed to fetch messages:', err);
+            setMessages([]);
+        }
     }, [apiUrl]);
     const toggleAi = useCallback(async (sessionId, enabled) => {
         await api.post(`/api/admin/chat/sessions/${sessionId}/toggle-ai`, { enabled });
     }, [apiUrl]);
     const sendManualMessage = useCallback(async (sessionId, message) => {
-        await api.post(`/api/admin/chat/sessions/${sessionId}/messages`, { message });
+        try {
+            const res = await api.post(`/api/admin/chat/sessions/${sessionId}/messages`, { message });
+            const newMessage = res.data.message || res.data.data || res.data;
+            if (newMessage && newMessage.id) {
+                setMessages(prev => {
+                    const exists = prev.some(m => String(m.id) === String(newMessage.id));
+                    if (exists)
+                        return prev;
+                    return [...prev, newMessage];
+                });
+            }
+        }
+        catch (err) {
+            console.error("Failed to send manual message", err);
+        }
     }, [apiUrl]);
+    const sendTyping = useCallback(async (sessionId, isTyping) => {
+        try {
+            await api.post(`/api/admin/chat/sessions/${sessionId}/typing`, { role: 'assistant', is_typing: isTyping });
+        }
+        catch (err) {
+            // silent fail
+        }
+    }, [apiUrl]);
+    // Polling fallback for real-time messages in case WebSockets fail
+    useEffect(() => {
+        if (!activeSession?.id)
+            return;
+        const pollInterval = setInterval(async () => {
+            try {
+                const res = await api.get(`/api/admin/chat/sessions/${activeSession.id}`);
+                const latestSession = res.data.session || res.data;
+                const latestMessages = latestSession.messages || [];
+                if (latestMessages.length > 0) {
+                    setMessages(prev => {
+                        // Merge messages, keeping uniqueness
+                        const merged = [...prev];
+                        let changed = false;
+                        latestMessages.forEach((msg) => {
+                            if (!merged.some(m => String(m.id) === String(msg.id))) {
+                                merged.push(msg);
+                                changed = true;
+                            }
+                        });
+                        return changed ? merged.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) : prev;
+                    });
+                }
+            }
+            catch (err) {
+                console.error("Polling failed", err);
+            }
+        }, 5000); // Poll every 5 seconds
+        return () => clearInterval(pollInterval);
+    }, [activeSession?.id, api]);
     const endSession = useCallback(async (sessionId) => {
         await api.post(`/api/chat/sessions/${sessionId}/end`);
         // Remove from sessions list
@@ -254,6 +328,7 @@ export function useMonitor(apiUrl, options = {}) {
         isLoading,
         unreadCounts,
         toolStatus,
+        typingSessions,
         fetchSessions,
         fetchTickets,
         updateTicketStatus,
@@ -261,6 +336,7 @@ export function useMonitor(apiUrl, options = {}) {
         selectSession,
         toggleAi,
         sendManualMessage,
+        sendTyping,
         endSession,
     };
 }
