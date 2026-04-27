@@ -21,6 +21,16 @@ npm install gunma-agent-dashboard
 npm install gunma-agent-dashboard@latest
 ```
 
+## Configuration (.env.local)
+The dashboard requires these Next.js public variables for real-time sync:
+```env
+NEXT_PUBLIC_PUSHER_KEY=your_key
+NEXT_PUBLIC_PUSHER_CLUSTER=mt1
+NEXT_PUBLIC_PUSHER_HOST=localhost
+NEXT_PUBLIC_PUSHER_PORT=6001
+NEXT_PUBLIC_PUSHER_FORCE_TLS=false
+```
+
 ## Development & Pushing to GitHub
 If you are modifying the package locally in the `packages/` directory:
 1. **Navigate to the package**: `cd packages/gunma-agent-dashboard`
