@@ -911,48 +911,35 @@
 
 /* ── Product Mini Cards ── */
 .gunma-product-grid {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    gap: 8px !important;
-    margin: 12px 0 !important;
+    display: block !important;
     width: 100% !important;
-    align-items: stretch !important;
+    margin: 12px 0 !important;
+    text-align: left !important;
 }
 
 .gunma-product-mini-card {
-    flex: 1 1 140px !important;
-    max-width: calc(25% - 8px) !important;
-    background: #ffffff !important; /* Force white background */
-    border: 1px solid var(--border-color) !important;
-    border-radius: 8px !important;
-    overflow: hidden !important;
-    display: flex !important;
+    display: inline-flex !important;
     flex-direction: column !important;
+    width: 180px !important; /* Smaller fixed width to ensure 4 fit */
+    margin: 8px 8px 8px 0 !important;
+    background: #ffffff !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 10px !important;
+    overflow: hidden !important;
     transition: all 0.2s !important;
-    height: auto !important;
-    color: #0f172a !important; /* Force dark text for readability */
-}
-
-@media (max-width: 1200px) {
-    .gunma-product-mini-card {
-        max-width: calc(33.33% - 8px) !important;
-    }
-}
-
-@media (max-width: 800px) {
-    .gunma-product-mini-card {
-        max-width: calc(50% - 8px) !important;
-    }
+    vertical-align: top !important;
+    color: #0f172a !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
 }
 
 .gunma-product-mini-card:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+    transform: translateY(-3px) !important;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1) !important;
 }
 
 .gunma-product-mini-img-link {
     width: 100% !important;
-    height: 100px !important; /* Slightly taller image */
+    height: 120px !important;
     background: white !important;
     display: flex !important;
     align-items: center !important;
@@ -960,6 +947,42 @@
     overflow: hidden !important;
     border-bottom: 1px solid var(--border-color) !important;
 }
+
+.gunma-product-mini-img-link img {
+    max-width: 90% !important;
+    max-height: 90% !important;
+    object-fit: contain !important;
+}
+
+.gunma-product-mini-body {
+    padding: 0.625rem !important;
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 !important;
+}
+
+.gunma-product-mini-title {
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    line-height: 1.4 !important;
+    height: 2.8em !important; /* Fixed height for 2 lines */
+    overflow: hidden !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    margin-bottom: 0.5rem !important;
+}
+
+.gunma-product-mini-footer {
+    margin-top: auto !important;
+}
+
+.gunma-product-mini-price {
+    font-size: 0.875rem !important;
+    font-weight: 700 !important;
+    color: var(--accent) !important;
+}
+
 
 .gunma-product-mini-img-link img {
     max-width: 100%;
