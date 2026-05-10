@@ -37,9 +37,50 @@ export interface DashboardStats {
     manual_sessions: number;
     pending_tickets: number;
 }
+export interface UseMonitorAuth {
+    /**
+     * localStorage keys to look up the Bearer token, tried in order.
+     * Default: ['token', 'tk']
+     */
+    tokenKeys?: string[];
+    /**
+     * Provide a token directly (skips localStorage lookup).
+     * Useful when auth is managed by the host app (e.g. Redux, Zustand).
+     */
+    getToken?: () => string | null;
+}
+export interface UseMonitorPusher {
+    key: string;
+    cluster?: string;
+    wsHost?: string;
+    wsPort?: number;
+    forceTLS?: boolean;
+    /** Path on the API used to authorize private channels. Default: '/api/broadcasting/auth' */
+    authEndpoint?: string;
+}
+export interface UseMonitorRoutes {
+    /** e.g. '/api/admin/chat'  — all specific paths are derived from this prefix */
+    prefix?: string;
+    sessions?: string;
+    tickets?: string;
+    stats?: string;
+    endSession?: string;
+    csrfCookie?: string;
+}
 export interface UseMonitorOptions {
     /** Auto-refresh interval in ms (0 = disabled). Default: 15000 */
     pollInterval?: number;
+    /** Authentication configuration */
+    auth?: UseMonitorAuth;
+    /** Pusher / Laravel Echo configuration (required for real-time features) */
+    pusher?: UseMonitorPusher;
+    /**
+     * Private channel name to subscribe to.
+     * Default: 'gunma-admin.chats'
+     */
+    broadcastChannel?: string;
+    /** API route overrides */
+    routes?: UseMonitorRoutes;
 }
 export declare function useMonitor(apiUrl: string, options?: UseMonitorOptions): {
     sessions: ChatSession[];

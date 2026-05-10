@@ -17,27 +17,50 @@ export function useMonitor(apiUrl, options = {}) {
     const activeSessionIdRef = useRef(null);
     const pollIntervalRef = useRef(null);
     const pollInterval = options.pollInterval ?? 15000;
+    // --- Resolved configurable values ---
+    const tokenKeys = options.auth?.tokenKeys ?? ['token', 'tk'];
+    const getToken = options.auth?.getToken;
+    const channel = options.broadcastChannel ?? 'gunma-admin.chats';
+    const routePrefix = options.routes?.prefix ?? '/api/admin/chat';
+    const routes = {
+        csrfCookie: options.routes?.csrfCookie ?? '/sanctum/csrf-cookie',
+        sessions: options.routes?.sessions ?? `${routePrefix}/sessions`,
+        tickets: options.routes?.tickets ?? `${routePrefix}/tickets`,
+        stats: options.routes?.stats ?? `${routePrefix}/stats`,
+        endSession: options.routes?.endSession ?? '/api/chat/sessions',
+        broadcastAuth: options.pusher?.authEndpoint ?? '/api/broadcasting/auth',
+    };
     useEffect(() => {
         activeSessionIdRef.current = activeSession?.id ?? null;
     }, [activeSession?.id]);
-    // Create dedicated axios instance for this hook, mirroring admin_dashboard/src/helpers/axios/axiosInstance.ts
+    // Create dedicated axios instance
     const api = useRef(axios.create({
         baseURL: apiUrl,
         withCredentials: true,
         timeout: 60000,
     })).current;
-    // Standard headers mirroring host application
     api.defaults.headers.post["Content-Type"] = "application/json";
     api.defaults.headers["Accept"] = "application/json";
     api.defaults.withXSRFToken = true;
-    // Request Interceptor mirroring host application
+    // Request Interceptor — configurable token resolution
     useEffect(() => {
         const interceptor = api.interceptors.request.use((config) => {
-            // 1. Authorization header
-            const authTokenRaw = localStorage.getItem('token') || localStorage.getItem('tk');
-            const authToken = authTokenRaw ? (authTokenRaw.startsWith('Bearer ') ? authTokenRaw : `Bearer ${authTokenRaw}`) : '';
-            if (authToken) {
-                config.headers.Authorization = authToken;
+            // 1. Authorization header — prefer getToken(), then tokenKeys[]
+            let rawToken = null;
+            if (getToken) {
+                rawToken = getToken();
+            }
+            else {
+                for (const key of tokenKeys) {
+                    rawToken = localStorage.getItem(key);
+                    if (rawToken)
+                        break;
+                }
+            }
+            if (rawToken) {
+                config.headers.Authorization = rawToken.startsWith('Bearer ')
+                    ? rawToken
+                    : `Bearer ${rawToken}`;
             }
             // 2. XSRF-TOKEN header from cookies
             const cookieArray = document.cookie.split(";");
@@ -58,45 +81,41 @@ export function useMonitor(apiUrl, options = {}) {
         const initSession = async () => {
             // 1. Get CSRF Cookie first for Sanctum
             try {
-                await api.get('/sanctum/csrf-cookie');
+                await api.get(routes.csrfCookie);
             }
             catch (err) {
                 console.warn('[useMonitor] CSRF init failed:', err);
             }
-            // 2. Initialize Echo
+            // 2. Initialize Echo — fully driven by options.pusher
+            if (!options.pusher?.key) {
+                console.warn('[useMonitor] No pusher config provided — real-time features disabled.');
+                return;
+            }
             window.Pusher = Pusher;
-            const url = new URL(apiUrl);
             try {
                 echoRef.current = new Echo({
                     broadcaster: 'pusher',
-                    key: process.env.NEXT_PUBLIC_PUSHER_KEY || '3e004c455a5824baf3a03f6d9cc6bcc5',
-                    cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'mt1',
-                    wsHost: process.env.NEXT_PUBLIC_PUSHER_HOST || 'localhost',
-                    wsPort: Number(process.env.NEXT_PUBLIC_PUSHER_PORT || 6001),
-                    forceTLS: process.env.NEXT_PUBLIC_PUSHER_FORCE_TLS === 'true',
+                    key: options.pusher.key,
+                    cluster: options.pusher.cluster,
+                    wsHost: options.pusher.wsHost ?? 'localhost',
+                    wsPort: options.pusher.wsPort ?? 6001,
+                    forceTLS: options.pusher.forceTLS ?? false,
                     enabledTransports: ['ws', 'wss'],
                     disableStats: true,
-                    // Use a standard authorizer to ensure it uses our axios instance
-                    authorizer: (channel) => {
-                        return {
-                            authorize: (socketId, callback) => {
-                                api.post('/api/broadcasting/auth', {
-                                    socket_id: socketId,
-                                    channel_name: channel.name
-                                })
-                                    .then(response => {
-                                    callback(false, response.data);
-                                })
-                                    .catch(error => {
-                                    callback(true, error);
-                                });
-                            }
-                        };
-                    }
+                    authorizer: (ch) => ({
+                        authorize: (socketId, callback) => {
+                            api.post(routes.broadcastAuth, {
+                                socket_id: socketId,
+                                channel_name: ch.name,
+                            })
+                                .then(res => callback(false, res.data))
+                                .catch(err => callback(true, err));
+                        },
+                    }),
                 });
                 if (echoRef.current) {
-                    const channel = echoRef.current.private('gunma-admin.chats');
-                    channel.listen('.message.new', (data) => {
+                    const echoChannel = echoRef.current.private(channel);
+                    echoChannel.listen('.message.new', (data) => {
                         setSessions(prev => {
                             const index = prev.findIndex(s => s.id === data.session_id);
                             if (index === -1)
@@ -119,18 +138,10 @@ export function useMonitor(apiUrl, options = {}) {
                                 return [...prev, data];
                             });
                         }
-                        setToolStatus(prev => {
-                            const next = { ...prev };
-                            delete next[data.session_id];
-                            return next;
-                        });
-                        setTypingSessions(prev => {
-                            const next = { ...prev };
-                            delete next[data.session_id];
-                            return next;
-                        });
+                        setToolStatus(prev => { const next = { ...prev }; delete next[data.session_id]; return next; });
+                        setTypingSessions(prev => { const next = { ...prev }; delete next[data.session_id]; return next; });
                     });
-                    channel.listen('.ai.status_changed', (data) => {
+                    echoChannel.listen('.ai.status_changed', (data) => {
                         setSessions(prev => prev.map(s => s.id === data.session_id ? { ...s, is_ai_enabled: data.is_ai_enabled } : s));
                         setActiveSession(prev => {
                             if (!prev || prev.id !== data.session_id)
@@ -140,21 +151,15 @@ export function useMonitor(apiUrl, options = {}) {
                             return { ...prev, is_ai_enabled: data.is_ai_enabled };
                         });
                     });
-                    channel.listen('.tool.executing', (data) => {
-                        setToolStatus(prev => ({
-                            ...prev,
-                            [data.session_id]: data.message || 'Thinking...'
-                        }));
+                    echoChannel.listen('.tool.executing', (data) => {
+                        setToolStatus(prev => ({ ...prev, [data.session_id]: data.message || 'Thinking...' }));
                     });
-                    channel.listen('.user.typing', (data) => {
+                    echoChannel.listen('.user.typing', (data) => {
                         if (data.role === 'user') {
-                            setTypingSessions(prev => ({
-                                ...prev,
-                                [data.session_id]: data.is_typing
-                            }));
+                            setTypingSessions(prev => ({ ...prev, [data.session_id]: data.is_typing }));
                         }
                     });
-                    channel.listen('.priority.updated', (data) => {
+                    echoChannel.listen('.priority.updated', (data) => {
                         setSessions(prev => {
                             const newSessions = prev.map(s => {
                                 if (s.id === data.session_id) {
@@ -200,7 +205,7 @@ export function useMonitor(apiUrl, options = {}) {
     const fetchSessions = useCallback(async () => {
         setIsLoading(true);
         try {
-            const res = await api.get('/api/admin/chat/sessions');
+            const res = await api.get(routes.sessions);
             setSessions(res.data.data);
         }
         finally {
@@ -210,7 +215,7 @@ export function useMonitor(apiUrl, options = {}) {
     const fetchTickets = useCallback(async (status) => {
         setIsLoading(true);
         try {
-            const res = await api.get('/api/admin/chat/tickets', { params: { status } });
+            const res = await api.get(routes.tickets, { params: { status } });
             setTickets(res.data.data);
         }
         finally {
@@ -218,12 +223,12 @@ export function useMonitor(apiUrl, options = {}) {
         }
     }, [apiUrl]);
     const updateTicketStatus = useCallback(async (ticketId, status) => {
-        await api.post(`/api/admin/chat/tickets/${ticketId}/status`, { status });
+        await api.post(`${routes.tickets}/${ticketId}/status`, { status });
         setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: status } : t));
     }, [apiUrl]);
     const fetchStats = useCallback(async () => {
         try {
-            const res = await api.get('/api/admin/chat/stats');
+            const res = await api.get(routes.stats);
             setStats(res.data);
         }
         catch (err) {
@@ -240,7 +245,7 @@ export function useMonitor(apiUrl, options = {}) {
         });
         try {
             // Fetch session with messages
-            const res = await api.get(`/api/admin/chat/sessions/${session.id}`);
+            const res = await api.get(`${routes.sessions}/${session.id}`);
             // Handle different possible response structures
             const sessionData = res.data.session || res.data;
             const fetchedMessages = sessionData.messages || [];
@@ -252,11 +257,11 @@ export function useMonitor(apiUrl, options = {}) {
         }
     }, [apiUrl]);
     const toggleAi = useCallback(async (sessionId, enabled) => {
-        await api.post(`/api/admin/chat/sessions/${sessionId}/toggle-ai`, { enabled });
+        await api.post(`${routes.sessions}/${sessionId}/toggle-ai`, { enabled });
     }, [apiUrl]);
     const sendManualMessage = useCallback(async (sessionId, message) => {
         try {
-            const res = await api.post(`/api/admin/chat/sessions/${sessionId}/messages`, { message });
+            const res = await api.post(`${routes.sessions}/${sessionId}/messages`, { message });
             const newMessage = res.data.message || res.data.data || res.data;
             if (newMessage && newMessage.id) {
                 setMessages(prev => {
@@ -273,7 +278,7 @@ export function useMonitor(apiUrl, options = {}) {
     }, [apiUrl]);
     const sendTyping = useCallback(async (sessionId, isTyping) => {
         try {
-            await api.post(`/api/admin/chat/sessions/${sessionId}/typing`, { role: 'assistant', is_typing: isTyping });
+            await api.post(`${routes.sessions}/${sessionId}/typing`, { role: 'assistant', is_typing: isTyping });
         }
         catch (err) {
             // silent fail
@@ -285,7 +290,7 @@ export function useMonitor(apiUrl, options = {}) {
             return;
         const pollInterval = setInterval(async () => {
             try {
-                const res = await api.get(`/api/admin/chat/sessions/${activeSession.id}`);
+                const res = await api.get(`${routes.sessions}/${activeSession.id}`);
                 const latestSession = res.data.session || res.data;
                 const latestMessages = latestSession.messages || [];
                 if (latestMessages.length > 0) {
@@ -310,7 +315,7 @@ export function useMonitor(apiUrl, options = {}) {
         return () => clearInterval(pollInterval);
     }, [activeSession?.id, api]);
     const endSession = useCallback(async (sessionId) => {
-        await api.post(`/api/chat/sessions/${sessionId}/end`);
+        await api.post(`${routes.endSession}/${sessionId}/end`);
         // Remove from sessions list
         setSessions(prev => prev.filter(s => s.id !== sessionId));
         // Clear active if it's the ended session
