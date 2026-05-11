@@ -3,8 +3,8 @@ import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-run
 import React, { useState, useEffect } from 'react';
 import { useMonitor } from '../hooks/useMonitor';
 import { MessageSquare, Bot, User, Pause, Play, Send, Search, UserCircle, Mail, Trash2, ShoppingCart, CreditCard, AlertCircle, Info, Loader2 } from 'lucide-react';
-export const AgentDashboard = ({ apiUrl, pollInterval }) => {
-    const { sessions, activeSession, messages, tickets, stats, isLoading, unreadCounts, toolStatus, typingSessions, fetchSessions, fetchTickets, updateTicketStatus, fetchStats, selectSession, toggleAi, sendManualMessage, sendTyping, endSession } = useMonitor(apiUrl, { pollInterval });
+export const AgentDashboard = ({ apiUrl, pollInterval, pusher, auth, broadcastChannel, routes }) => {
+    const { sessions, activeSession, messages, tickets, stats, isLoading, unreadCounts, toolStatus, typingSessions, fetchSessions, fetchTickets, updateTicketStatus, fetchStats, selectSession, toggleAi, sendManualMessage, sendTyping, endSession } = useMonitor(apiUrl, { pollInterval, pusher, auth, broadcastChannel, routes });
     const [view, setView] = useState('chats');
     const [manualText, setManualText] = useState('');
     const [search, setSearch] = useState('');
