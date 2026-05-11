@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useMonitor, ChatSession, SupportTicket } from '../hooks/useMonitor';
+import { useMonitor, ChatSession, SupportTicket, UseMonitorAuth, UseMonitorPusher, UseMonitorRoutes } from '../hooks/useMonitor';
 import { 
     MessageSquare, 
     Bot, 
@@ -31,11 +31,19 @@ interface AgentDashboardProps {
     apiUrl: string;
     /** Auto-refresh interval in ms (0 = disabled). Default: 15000 */
     pollInterval?: number;
+    /** Pusher/Echo real-time configuration. Required for WebSocket features. */
+    pusher?: UseMonitorPusher;
+    /** Authentication configuration. */
+    auth?: UseMonitorAuth;
+    /** Private channel name. Default: 'gunma-admin.chats' */
+    broadcastChannel?: string;
+    /** API route overrides. */
+    routes?: UseMonitorRoutes;
 }
 
 type SessionFilter = 'all' | 'active' | 'manual' | 'ended';
 
-export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInterval }: AgentDashboardProps) => {
+export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInterval, pusher, auth, broadcastChannel, routes }: AgentDashboardProps) => {
     const { 
         sessions, 
         activeSession, 
@@ -55,7 +63,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
         sendManualMessage,
         sendTyping,
         endSession
-    } = useMonitor(apiUrl, { pollInterval });
+    } = useMonitor(apiUrl, { pollInterval, pusher, auth, broadcastChannel, routes });
 
     const [view, setView] = useState<'chats' | 'tickets'>('chats');
     const [manualText, setManualText] = useState('');
