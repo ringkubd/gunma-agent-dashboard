@@ -1100,3 +1100,153 @@
     margin-top: 0.25rem;
     font-weight: 500;
 }
+
+/* ── Initials Avatar ── */
+.initials-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.875rem;
+    flex-shrink: 0;
+    letter-spacing: 0.5px;
+}
+.initials-circle.large {
+    width: 48px;
+    height: 48px;
+    font-size: 1rem;
+}
+.initials-circle.small {
+    width: 32px;
+    height: 32px;
+    font-size: 0.75rem;
+}
+
+/* ── Email in session list ── */
+.email-line {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin: 1px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── Message sender name ── */
+.message-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 4px;
+}
+.message-sender {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--accent);
+}
+
+/* ── Message search bar ── */
+.msg-search-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 2rem;
+    background: var(--bg-sidebar);
+    border-bottom: 1px solid var(--border-color);
+}
+.msg-search-bar input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 0.8125rem;
+    color: inherit;
+}
+.msg-search-clear {
+    cursor: pointer;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+.msg-search-clear:hover { color: var(--text-main); }
+.empty-msg-search {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+/* ── Quick replies ── */
+.input-area {
+    position: relative;
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-sidebar);
+}
+.quick-replies-panel {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-main);
+}
+.quick-reply-btn {
+    white-space: nowrap;
+    padding: 0.375rem 0.75rem;
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    color: var(--text-main);
+    font-size: 0.8125rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
+}
+.quick-reply-btn:hover {
+    border-color: var(--accent);
+    background: var(--accent-glow);
+    color: var(--accent);
+}
+.quick-reply-toggle {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    padding: 0 0.5rem;
+    display: flex;
+    align-items: center;
+    transition: color 0.15s;
+}
+.quick-reply-toggle:hover { color: var(--accent); }
+
+/* ── Empty state ── */
+.empty-list {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+/* ── Visitor ID secondary text ── */
+.id-hint {
+    font-weight: 400;
+    opacity: 0.6;
+}
+
+/* ── Customer info panel extra rows ── */
+.info-row label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.info-row span:not(label) {
+    font-size: 0.8125rem;
+    word-break: break-all;
+}
+.status-badge.active { color: var(--accent); }
+.status-badge.ended { color: var(--text-muted); }

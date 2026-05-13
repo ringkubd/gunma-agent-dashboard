@@ -9,6 +9,7 @@ export interface ChatSession {
     id: string;
     visitor_id: string;
     customer_name: string | null;
+    customer_email: string | null;
     channel: string;
     status: string;
     is_ai_enabled: boolean;
