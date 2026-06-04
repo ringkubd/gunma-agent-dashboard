@@ -27,7 +27,10 @@ import {
     Loader2,
     ChevronDown,
     Stamp,
-    Volume2
+    Volume2,
+    ThumbsUp,
+    ThumbsDown,
+    CheckCircle2
 } from 'lucide-react';
 
 interface AgentDashboardProps {
@@ -512,6 +515,19 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
                                             <div className="section-header"><ShoppingCart size={18} /><h4>Shopping Cart</h4></div>
                                             <div className="cart-list empty"><p>No active cart items.</p></div>
                                         </div>
+                                        {activeSession.status === 'ended' && (
+                                            <div className="panel-section">
+                                                <div className="section-header"><CheckCircle2 size={18} /><h4>Feedback</h4></div>
+                                                <div className="profile-card">
+                                                    <div className="info-row"><label>Rating</label><span>{(activeSession as any).feedback_rating ? '⭐'.repeat((activeSession as any).feedback_rating) : '—'}</span></div>
+                                                    {(activeSession as any).feedback_comment && (
+                                                        <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                                                            {(activeSession as any).feedback_comment}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
                                     </aside>
                                 )}
                             </div>

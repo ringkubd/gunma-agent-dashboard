@@ -294,6 +294,24 @@ export function useMonitor(apiUrl: string, options: UseMonitorOptions = {}) {
                             });
                         });
                     });
+
+                    echoChannel.listen('.session.linked', (data: any) => {
+                        setSessions(prev => prev.map(s =>
+                            s.id === data.session_id ? {
+                                ...s,
+                                customer_name: data.customer_name || s.customer_name,
+                                customer_email: data.customer_email || s.customer_email,
+                            } : s
+                        ));
+                        setActiveSession(prev => {
+                            if (!prev || prev.id !== data.session_id) return prev;
+                            return {
+                                ...prev,
+                                customer_name: data.customer_name || prev.customer_name,
+                                customer_email: data.customer_email || prev.customer_email,
+                            };
+                        });
+                    });
                 }
             } catch (err) {
                 console.warn('[useChat] Echo init failed:', err);
