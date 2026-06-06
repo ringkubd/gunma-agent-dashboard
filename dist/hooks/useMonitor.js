@@ -8,6 +8,8 @@ export function useMonitor(apiUrl, options = {}) {
     const [activeSession, setActiveSession] = useState(null);
     const [messages, setMessages] = useState([]);
     const [tickets, setTickets] = useState([]);
+    const [selectedTicket, setSelectedTicket] = useState(null);
+    const [ticketMessages, setTicketMessages] = useState([]);
     const [stats, setStats] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [unreadCounts, setUnreadCounts] = useState({});
@@ -176,6 +178,22 @@ export function useMonitor(apiUrl, options = {}) {
                             });
                         });
                     });
+                    echoChannel.listen('.session.linked', (data) => {
+                        setSessions(prev => prev.map(s => s.id === data.session_id ? {
+                            ...s,
+                            customer_name: data.customer_name || s.customer_name,
+                            customer_email: data.customer_email || s.customer_email,
+                        } : s));
+                        setActiveSession(prev => {
+                            if (!prev || prev.id !== data.session_id)
+                                return prev;
+                            return {
+                                ...prev,
+                                customer_name: data.customer_name || prev.customer_name,
+                                customer_email: data.customer_email || prev.customer_email,
+                            };
+                        });
+                    });
                 }
             }
             catch (err) {
@@ -222,6 +240,20 @@ export function useMonitor(apiUrl, options = {}) {
             setIsLoading(false);
         }
     }, [apiUrl]);
+    const fetchTicketDetail = useCallback(async (ticketId) => {
+        try {
+            const res = await api.get(`${routes.tickets}/${ticketId}`);
+            setSelectedTicket(res.data.ticket);
+            setTicketMessages(res.data.messages || []);
+        }
+        catch (err) {
+            console.error('[useMonitor] Failed to fetch ticket:', err);
+        }
+    }, [apiUrl]);
+    const selectTicket = useCallback(async (ticket) => {
+        setSelectedTicket(ticket);
+        await fetchTicketDetail(ticket.id);
+    }, [fetchTicketDetail]);
     const updateTicketStatus = useCallback(async (ticketId, status) => {
         await api.post(`${routes.tickets}/${ticketId}/status`, { status });
         setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: status } : t));
@@ -329,6 +361,8 @@ export function useMonitor(apiUrl, options = {}) {
         activeSession,
         messages,
         tickets,
+        selectedTicket,
+        ticketMessages,
         stats,
         isLoading,
         unreadCounts,
@@ -336,9 +370,11 @@ export function useMonitor(apiUrl, options = {}) {
         typingSessions,
         fetchSessions,
         fetchTickets,
+        fetchTicketDetail,
         updateTicketStatus,
         fetchStats,
         selectSession,
+        selectTicket,
         toggleAi,
         sendManualMessage,
         sendTyping,

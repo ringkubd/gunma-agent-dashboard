@@ -108,6 +108,8 @@ export function useMonitor(apiUrl: string, options: UseMonitorOptions = {}) {
     const [activeSession, setActiveSession] = useState<ChatSession | null>(null);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [tickets, setTickets] = useState<SupportTicket[]>([]);
+    const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
+    const [ticketMessages, setTicketMessages] = useState<ChatMessage[]>([]);
     const [stats, setStats] = useState<DashboardStats | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
@@ -362,6 +364,21 @@ export function useMonitor(apiUrl: string, options: UseMonitorOptions = {}) {
         }
     }, [apiUrl]);
 
+    const fetchTicketDetail = useCallback(async (ticketId: string) => {
+        try {
+            const res = await api.get(`${routes.tickets}/${ticketId}`);
+            setSelectedTicket(res.data.ticket);
+            setTicketMessages(res.data.messages || []);
+        } catch (err) {
+            console.error('[useMonitor] Failed to fetch ticket:', err);
+        }
+    }, [apiUrl]);
+
+    const selectTicket = useCallback(async (ticket: SupportTicket) => {
+        setSelectedTicket(ticket);
+        await fetchTicketDetail(ticket.id);
+    }, [fetchTicketDetail]);
+
     const updateTicketStatus = useCallback(async (ticketId: string, status: string) => {
         await api.post(`${routes.tickets}/${ticketId}/status`, { status });
         setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: status as any } : t));
@@ -481,6 +498,8 @@ export function useMonitor(apiUrl: string, options: UseMonitorOptions = {}) {
         activeSession,
         messages,
         tickets,
+        selectedTicket,
+        ticketMessages,
         stats,
         isLoading,
         unreadCounts,
@@ -488,9 +507,11 @@ export function useMonitor(apiUrl: string, options: UseMonitorOptions = {}) {
         typingSessions,
         fetchSessions,
         fetchTickets,
+        fetchTicketDetail,
         updateTicketStatus,
         fetchStats,
         selectSession,
+        selectTicket,
         toggleAi,
         sendManualMessage,
         sendTyping,

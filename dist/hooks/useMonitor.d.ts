@@ -88,6 +88,8 @@ export declare function useMonitor(apiUrl: string, options?: UseMonitorOptions):
     activeSession: ChatSession | null;
     messages: ChatMessage[];
     tickets: SupportTicket[];
+    selectedTicket: SupportTicket | null;
+    ticketMessages: ChatMessage[];
     stats: DashboardStats | null;
     isLoading: boolean;
     unreadCounts: Record<string, number>;
@@ -95,9 +97,11 @@ export declare function useMonitor(apiUrl: string, options?: UseMonitorOptions):
     typingSessions: Record<string, boolean>;
     fetchSessions: () => Promise<void>;
     fetchTickets: (status?: string) => Promise<void>;
+    fetchTicketDetail: (ticketId: string) => Promise<void>;
     updateTicketStatus: (ticketId: string, status: string) => Promise<void>;
     fetchStats: () => Promise<void>;
     selectSession: (session: ChatSession) => Promise<void>;
+    selectTicket: (ticket: SupportTicket) => Promise<void>;
     toggleAi: (sessionId: string, enabled: boolean) => Promise<void>;
     sendManualMessage: (sessionId: string, message: string) => Promise<void>;
     sendTyping: (sessionId: string, isTyping: boolean) => Promise<void>;

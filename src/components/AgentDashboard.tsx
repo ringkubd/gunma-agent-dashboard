@@ -99,6 +99,8 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
         activeSession, 
         messages, 
         tickets,
+        selectedTicket,
+        ticketMessages,
         stats,
         isLoading, 
         unreadCounts,
@@ -106,9 +108,11 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
         typingSessions,
         fetchSessions, 
         fetchTickets,
+        fetchTicketDetail,
         updateTicketStatus,
         fetchStats,
         selectSession, 
+        selectTicket,
         toggleAi, 
         sendManualMessage,
         sendTyping,
@@ -356,7 +360,8 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
                         ) : (
                             <div className="ticket-list">
                                 {tickets.map(t => (
-                                    <div key={t.id} className="ticket-item">
+                                    <div key={t.id} className={`ticket-item ${selectedTicket?.id === t.id ? 'active' : ''}`}
+                                        onClick={() => selectTicket(t)}>
                                         <div className={`status-indicator ${t.status}`} title={t.status} />
                                         <div className="ticket-main">
                                             <div className="ticket-top">
@@ -538,11 +543,84 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
                                 <p>Monitor live interactions between Piku and your customers here.</p>
                             </div>
                         )
+                    ) : selectedTicket ? (
+                        <div className="monitor-container">
+                            <div className="monitor-main">
+                                <header className="monitor-header">
+                                    <div className="user-profile">
+                                        <div className="initials-circle large" style={{ backgroundColor: getInitialsColor(selectedTicket.name) }}>
+                                            {getInitials(selectedTicket.name)}
+                                        </div>
+                                        <div className="profile-info">
+                                            <h3>{selectedTicket.name || 'Anonymous'}</h3>
+                                            <span className="visitor-id">{selectedTicket.email || selectedTicket.issue_type}</span>
+                                        </div>
+                                    </div>
+                                    <div className="control-actions">
+                                        <select value={selectedTicket.status}
+                                            onChange={(e) => { updateTicketStatus(selectedTicket.id, e.target.value); fetchTicketDetail(selectedTicket.id); }}
+                                            className={`status-picker ${selectedTicket.status}`}>
+                                            <option value="pending">Pending</option>
+                                            <option value="open">Open</option>
+                                            <option value="resolved">Resolved</option>
+                                            <option value="closed">Closed</option>
+                                        </select>
+                                    </div>
+                                </header>
+                                <div className="ticket-detail-body">
+                                    <div className="ticket-detail-section">
+                                        <div className="ticket-detail-label">Subject</div>
+                                        <div className="ticket-detail-value">{selectedTicket.subject || 'Complaint'}</div>
+                                    </div>
+                                    <div className="ticket-detail-section">
+                                        <div className="ticket-detail-label">Issue Type</div>
+                                        <div className="ticket-detail-value">{selectedTicket.issue_type}</div>
+                                    </div>
+                                    {selectedTicket.order_id && (
+                                        <div className="ticket-detail-section">
+                                            <div className="ticket-detail-label">Order ID</div>
+                                            <div className="ticket-detail-value">#{selectedTicket.order_id}</div>
+                                        </div>
+                                    )}
+                                    <div className="ticket-detail-section">
+                                        <div className="ticket-detail-label">Message</div>
+                                        <div className="ticket-detail-value" style={{ whiteSpace: 'pre-wrap' }}>{selectedTicket.message}</div>
+                                    </div>
+                                    {selectedTicket.phone && (
+                                        <div className="ticket-detail-section">
+                                            <div className="ticket-detail-label">Phone</div>
+                                            <div className="ticket-detail-value">{selectedTicket.phone}</div>
+                                        </div>
+                                    )}
+                                    <div className="ticket-detail-section">
+                                        <div className="ticket-detail-label">Created</div>
+                                        <div className="ticket-detail-value">{new Date(selectedTicket.created_at).toLocaleString()}</div>
+                                    </div>
+                                </div>
+                                {ticketMessages.length > 0 && (
+                                    <div className="ticket-messages-section">
+                                        <div className="section-header"><MessageSquare size={16} /><h4>Related Chat Messages</h4></div>
+                                        {ticketMessages.map((m: any) => (
+                                            <div key={m.id} className={`message-row ${m.role}`}>
+                                                <div className="message-icon">{m.role === 'user' ? <User size={14} /> : <Bot size={14} />}</div>
+                                                <div className="message-content">
+                                                    <div className="message-meta">
+                                                        <span className="message-sender">{m.role === 'user' ? 'Customer' : 'Piku AI'}</span>
+                                                        <span className="timestamp">{new Date(m.created_at).toLocaleTimeString()}</span>
+                                                    </div>
+                                                    <div className="message-bubble" style={m.role === 'assistant' ? { background: 'var(--accent)', color: 'white' } : {}}>{m.content}</div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     ) : (
                         <div className="empty-monitor">
                             <AlertCircle size={64} />
                             <h2>Ticket Management</h2>
-                            <p>Formal claims, cancellations, and issues are listed in the sidebar.</p>
+                            <p>Select a ticket from the sidebar to view details.</p>
                             <div className="ticket-guide">
                                 <h3>Status Legend</h3>
                                 <div className="legend-items">
