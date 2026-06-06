@@ -30,7 +30,6 @@ import {
     Volume2,
     ThumbsUp,
     ThumbsDown,
-    CheckCircle2
 } from 'lucide-react';
 
 interface AgentDashboardProps {

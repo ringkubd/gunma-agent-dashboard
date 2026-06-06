@@ -2,7 +2,7 @@
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
 import React, { useState, useEffect, useRef } from 'react';
 import { useMonitor } from '../hooks/useMonitor';
-import { MessageSquare, Bot, User, Pause, Play, Send, Search, UserCircle, Mail, Trash2, ShoppingCart, CreditCard, AlertCircle, Info, CheckCircle2, XCircle, Loader2, Stamp } from 'lucide-react';
+import { MessageSquare, Bot, User, Pause, Play, Send, Search, UserCircle, Mail, Trash2, ShoppingCart, CreditCard, AlertCircle, Info, CheckCircle2, XCircle, Loader2, Stamp, } from 'lucide-react';
 function getInitials(name) {
     if (!name)
         return '?';
