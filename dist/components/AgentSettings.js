@@ -17,8 +17,24 @@ export const AgentSettings = ({ apiUrl, getToken, tokenKeys = ['token', 'tk'], a
     const [testResult, setTestResult] = useState(null);
     const [busyAction, setBusyAction] = useState(null);
     const api = axios.create({ baseURL: apiUrl, withCredentials: true, timeout: 30000 });
+    // Ensure the Sanctum CSRF cookie exists before stateful (write) requests.
+    const ensureCsrf = async () => {
+        if (typeof document === 'undefined')
+            return;
+        if (/(?:^|;\s*)XSRF-TOKEN=/.test(document.cookie))
+            return;
+        try {
+            await axios.get(`${apiUrl.replace(/\/$/, '')}/sanctum/csrf-cookie`, { withCredentials: true });
+        }
+        catch {
+            // Best effort.
+        }
+    };
     // Auth + CSRF interception (AgentSettings previously had none).
-    api.interceptors.request.use((config) => {
+    api.interceptors.request.use(async (config) => {
+        const method = (config.method || 'get').toLowerCase();
+        if (method !== 'get')
+            await ensureCsrf();
         let raw = null;
         if (getToken)
             raw = getToken();
