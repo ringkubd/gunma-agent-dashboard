@@ -30,7 +30,186 @@ import {
     Volume2,
     ThumbsUp,
     ThumbsDown,
+    Eye,
+    MapPin,
+    Star,
+    Activity,
+    Package,
 } from 'lucide-react';
+
+interface CustomerProfileModalProps {
+    profile: any;
+    loading?: boolean;
+    onClose: () => void;
+}
+
+function moneyFmt(n: any): string {
+    return '¥' + Number(n || 0).toLocaleString('ja-JP');
+}
+
+function CustomerProfileModal({ profile, loading, onClose }: CustomerProfileModalProps) {
+    if (!profile && !loading) return null;
+    const cust = profile?.customer;
+    const metric = profile?.metrics || {};
+    const activity = profile?.activity || {};
+    const title = cust?.name || profile?.session?.customer_name || 'Guest Visitor';
+    const subtitle = cust?.email || (profile?.session?.visitor_id ? `Visitor ${profile.session.visitor_id}` : '');
+
+    return (
+        <div className="gunma-profile-overlay" onClick={onClose}>
+            <div className="gunma-profile-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="gunma-profile-modal-head">
+                    <div className="initials-circle large" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}>
+                        {getInitials(title)}
+                    </div>
+                    <div>
+                        <h2>{title}</h2>
+                        <div className="sub">
+                            {subtitle}
+                            {profile?.is_guest ? ' · Guest' : ' · Registered customer'}
+                        </div>
+                    </div>
+                    <button className="close" onClick={onClose} aria-label="Close">✕</button>
+                </div>
+
+                {loading && !profile ? (
+                    <div style={{ padding: 40, textAlign: 'center' }}><Loader2 className="animate-spin" /></div>
+                ) : (
+                    <div className="gunma-profile-body">
+                        {/* Metrics */}
+                        <div className="gunma-profile-block wide">
+                            <h3><Activity size={14} /> Overview</h3>
+                            <div className="gunma-profile-stat-grid">
+                                <div className="gunma-profile-stat"><span className="v">{metric.orders_count ?? 0}</span><span className="l">Orders</span></div>
+                                <div className="gunma-profile-stat"><span className="v">{moneyFmt(metric.total_spent)}</span><span className="l">Total Spent</span></div>
+                                <div className="gunma-profile-stat"><span className="v">{moneyFmt(metric.avg_order)}</span><span className="l">Avg Order</span></div>
+                                <div className="gunma-profile-stat"><span className="v">{metric.cart_items ?? 0}</span><span className="l">In Cart</span></div>
+                                <div className="gunma-profile-stat"><span className="v">{cust?.points ?? 0}</span><span className="l">Points</span></div>
+                                <div className="gunma-profile-stat"><span className="v">{metric.messages_count ?? 0}</span><span className="l">Messages</span></div>
+                            </div>
+                        </div>
+
+                        {/* Profile details */}
+                        <div className="gunma-profile-block">
+                            <h3><UserCircle size={14} /> Profile</h3>
+                            <div className="gunma-profile-row"><label>Name</label><span>{title}</span></div>
+                            <div className="gunma-profile-row"><label>Email</label><span>{cust?.email || profile?.session?.customer_email || '—'}</span></div>
+                            <div className="gunma-profile-row"><label>Phone</label><span>{cust?.phone || '—'}</span></div>
+                            <div className="gunma-profile-row"><label>Country</label><span>{cust?.country || '—'}</span></div>
+                            <div className="gunma-profile-row"><label>Language</label><span>{cust?.native_language || '—'}</span></div>
+                            <div className="gunma-profile-row"><label>Wallet</label><span>{moneyFmt(cust?.wallet)}</span></div>
+                            <div className="gunma-profile-row"><label>Joined</label><span>{cust?.joined_at ? new Date(cust.joined_at).toLocaleDateString() : '—'}</span></div>
+                            <div className="gunma-profile-row"><label>Channel</label><span className="status-badge">{profile?.session?.channel}</span></div>
+                        </div>
+
+                        {/* Activity summary */}
+                        <div className="gunma-profile-block">
+                            <h3><Eye size={14} /> Behaviour</h3>
+                            <div className="gunma-profile-row"><label>First seen</label><span>{activity.first_seen ? new Date(activity.first_seen).toLocaleString() : '—'}</span></div>
+                            <div className="gunma-profile-row"><label>Last seen</label><span>{activity.last_seen ? new Date(activity.last_seen).toLocaleString() : '—'}</span></div>
+                            <div style={{ marginTop: 8 }}>
+                                <div className="gunma-profile-chips">
+                                    {Object.entries(activity.by_action || {}).map(([k, v]) => (
+                                        <span key={k} className="gunma-profile-chip">{k}: {String(v)}</span>
+                                    ))}
+                                </div>
+                            </div>
+                            {(activity.recent_searches || []).length > 0 && (
+                                <div style={{ marginTop: 10 }}>
+                                    <label style={{ fontSize: 12, color: 'var(--text-muted)' }}>Recent searches</label>
+                                    <div className="gunma-profile-chips" style={{ marginTop: 4 }}>
+                                        {activity.recent_searches.map((s: string, i: number) => (
+                                            <span key={i} className="gunma-profile-chip">{s}</span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Orders */}
+                        <div className="gunma-profile-block">
+                            <h3><Package size={14} /> Recent Orders ({(profile?.orders || []).length})</h3>
+                            {(profile?.orders || []).length === 0 ? (
+                                <p className="gunma-profile-empty">No orders yet.</p>
+                            ) : (
+                                <div className="gunma-profile-list">
+                                    {profile.orders.map((o: any) => (
+                                        <div key={o.id} className="gunma-profile-order">
+                                            <div className="top"><span>#{o.id}</span><span>{moneyFmt(o.total_amount)}</span></div>
+                                            <div className="meta">
+                                                {o.status} · {o.payment_method || '—'} · {o.payment_status || '—'}
+                                                {o.delivery_date ? ` · 📅 ${o.delivery_date}` : ''}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Cart */}
+                        <div className="gunma-profile-block">
+                            <h3><ShoppingCart size={14} /> Current Cart ({(profile?.cart || []).length})</h3>
+                            {(profile?.cart || []).length === 0 ? (
+                                <p className="gunma-profile-empty">No active cart items.</p>
+                            ) : (
+                                <div className="gunma-profile-list">
+                                    {profile.cart.map((c: any, i: number) => (
+                                        <div key={i} className="gunma-profile-order">
+                                            <div className="top"><span>{c.title || `#${c.product_id}`}</span><span>{moneyFmt(c.line_total)}</span></div>
+                                            <div className="meta">Qty {c.quantity} × {moneyFmt(c.price)}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Addresses */}
+                        <div className="gunma-profile-block wide">
+                            <h3><MapPin size={14} /> Saved Addresses ({(profile?.addresses || []).length})</h3>
+                            {(profile?.addresses || []).length === 0 ? (
+                                <p className="gunma-profile-empty">No saved addresses.</p>
+                            ) : (
+                                <div className="gunma-profile-list">
+                                    {profile.addresses.map((a: any, i: number) => (
+                                        <div key={i} className="gunma-profile-order">
+                                            <div className="top">
+                                                <span>{a.name} {a.is_default ? '⭐' : ''}</span>
+                                                <span>{a.phone}</span>
+                                            </div>
+                                            <div className="meta">
+                                                〒{a.postal_code} {[a.state, a.city, a.street, a.apartment].filter(Boolean).join(', ')}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Recent activity feed */}
+                        <div className="gunma-profile-block wide">
+                            <h3><Star size={14} /> Recent Activity ({(activity.recent || []).length})</h3>
+                            {(activity.recent || []).length === 0 ? (
+                                <p className="gunma-profile-empty">No tracked activity.</p>
+                            ) : (
+                                <div className="gunma-profile-list">
+                                    {activity.recent.map((a: any, i: number) => (
+                                        <div key={i} className="gunma-profile-activity">
+                                            <span className="a">{a.action}</span>
+                                            <span className="gunma-profile-empty">
+                                                {a.query ? `"${a.query}" · ` : ''}{a.page_url || ''}
+                                            </span>
+                                            <span className="gunma-profile-empty">{new Date(a.logged_at).toLocaleString()}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
 
 interface AgentDashboardProps {
     apiUrl: string;
@@ -115,7 +294,9 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
         toggleAi, 
         sendManualMessage,
         sendTyping,
-        endSession
+        endSession,
+        profile,
+        profileLoading,
     } = useMonitor(apiUrl, { pollInterval, pusher, auth, broadcastChannel, routes });
 
     const [view, setView] = useState<'chats' | 'tickets'>('chats');
@@ -123,6 +304,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
     const [search, setSearch] = useState('');
     const [filter, setFilter] = useState<SessionFilter>('all');
     const [confirmEndId, setConfirmEndId] = useState<string | null>(null);
+    const [showProfile, setShowProfile] = useState(false);
     const [showSidePanel, setShowSidePanel] = useState(true);
     const [showQuickReplies, setShowQuickReplies] = useState(false);
     const [msgSearch, setMsgSearch] = useState('');
@@ -142,6 +324,11 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
+
+    // Close the profile modal when switching to a different session.
+    useEffect(() => {
+        setShowProfile(false);
+    }, [activeSession?.id]);
 
     const renderMarkdown = (text: string): string => {
         if (!text) return '';
@@ -409,6 +596,9 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
                                             </button>
                                         </div>
                                         <div className="control-actions">
+                                            <button className="gunma-profile-trigger" onClick={() => setShowProfile(true)}>
+                                                <Eye size={16} /> View Profile
+                                            </button>
                                             <button className={`ai-toggle ${activeSession.is_ai_enabled ? 'enabled' : 'disabled'}`}
                                                 onClick={() => toggleAi(activeSession.id, !activeSession.is_ai_enabled)}
                                                 title={activeSession.is_ai_enabled ? "Stop AI to reply manually" : "Let AI handle this chat"}>
@@ -645,6 +835,14 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
                         </div>
                     </div>
                 </div>
+            )}
+
+            {showProfile && (
+                <CustomerProfileModal
+                    profile={profile}
+                    loading={profileLoading}
+                    onClose={() => setShowProfile(false)}
+                />
             )}
         </div>
     );

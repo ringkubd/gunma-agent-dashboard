@@ -115,6 +115,8 @@ export function useMonitor(apiUrl: string, options: UseMonitorOptions = {}) {
     const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
     const [toolStatus, setToolStatus] = useState<Record<string, string>>({});
     const [typingSessions, setTypingSessions] = useState<Record<string, boolean>>({});
+    const [profile, setProfile] = useState<any | null>(null);
+    const [profileLoading, setProfileLoading] = useState(false);
     const echoRef = useRef<Echo<any> | null>(null);
     const activeSessionIdRef = useRef<string | null>(null);
     const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -395,12 +397,26 @@ export function useMonitor(apiUrl: string, options: UseMonitorOptions = {}) {
 
     const selectSession = useCallback(async (session: ChatSession) => {
         setActiveSession(session);
+        setProfile(null);
         // Clear unread for this session
         setUnreadCounts(prev => {
             const next = { ...prev };
             delete next[session.id];
             return next;
         });
+
+        // Fetch the complete 360° profile (customer or guest) in parallel.
+        (async () => {
+            setProfileLoading(true);
+            try {
+                const pres = await api.get(`${routes.sessions}/${session.id}/profile`);
+                setProfile(pres.data?.data ?? null);
+            } catch (err) {
+                console.warn('[useMonitor] Profile fetch failed');
+            } finally {
+                setProfileLoading(false);
+            }
+        })();
 
         try {
             // Fetch session with messages
@@ -490,6 +506,7 @@ export function useMonitor(apiUrl: string, options: UseMonitorOptions = {}) {
         if (activeSessionIdRef.current === sessionId) {
             setActiveSession(null);
             setMessages([]);
+            setProfile(null);
         }
     }, [apiUrl]);
 
@@ -516,5 +533,7 @@ export function useMonitor(apiUrl: string, options: UseMonitorOptions = {}) {
         sendManualMessage,
         sendTyping,
         endSession,
+        profile,
+        profileLoading,
     };
 }

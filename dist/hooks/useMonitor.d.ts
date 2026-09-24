@@ -106,4 +106,6 @@ export declare function useMonitor(apiUrl: string, options?: UseMonitorOptions):
     sendManualMessage: (sessionId: string, message: string) => Promise<void>;
     sendTyping: (sessionId: string, isTyping: boolean) => Promise<void>;
     endSession: (sessionId: string) => Promise<void>;
+    profile: any;
+    profileLoading: boolean;
 };

@@ -15,6 +15,8 @@ export function useMonitor(apiUrl, options = {}) {
     const [unreadCounts, setUnreadCounts] = useState({});
     const [toolStatus, setToolStatus] = useState({});
     const [typingSessions, setTypingSessions] = useState({});
+    const [profile, setProfile] = useState(null);
+    const [profileLoading, setProfileLoading] = useState(false);
     const echoRef = useRef(null);
     const activeSessionIdRef = useRef(null);
     const pollIntervalRef = useRef(null);
@@ -269,12 +271,27 @@ export function useMonitor(apiUrl, options = {}) {
     }, [apiUrl]);
     const selectSession = useCallback(async (session) => {
         setActiveSession(session);
+        setProfile(null);
         // Clear unread for this session
         setUnreadCounts(prev => {
             const next = { ...prev };
             delete next[session.id];
             return next;
         });
+        // Fetch the complete 360° profile (customer or guest) in parallel.
+        (async () => {
+            setProfileLoading(true);
+            try {
+                const pres = await api.get(`${routes.sessions}/${session.id}/profile`);
+                setProfile(pres.data?.data ?? null);
+            }
+            catch (err) {
+                console.warn('[useMonitor] Profile fetch failed');
+            }
+            finally {
+                setProfileLoading(false);
+            }
+        })();
         try {
             // Fetch session with messages
             const res = await api.get(`${routes.sessions}/${session.id}`);
@@ -354,6 +371,7 @@ export function useMonitor(apiUrl, options = {}) {
         if (activeSessionIdRef.current === sessionId) {
             setActiveSession(null);
             setMessages([]);
+            setProfile(null);
         }
     }, [apiUrl]);
     return {
@@ -379,5 +397,7 @@ export function useMonitor(apiUrl, options = {}) {
         sendManualMessage,
         sendTyping,
         endSession,
+        profile,
+        profileLoading,
     };
 }
