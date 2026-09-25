@@ -1,18 +1,21 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 .gunma-dashboard {
-    --bg-main: #f6f8fb;
+    --bg-main: #effaf5;
     --bg-sidebar: #ffffff;
     --bg-card: #ffffff;
-    --border-color: #e4e9f0;
-    --text-main: #0f172a;
-    --text-muted: #64748b;
-    --accent: #4f46e5;
-    --accent-light: #6366f1;
-    --accent-glow: rgba(79, 70, 229, 0.12);
-    --success: #10b981;
-    --danger: #ef4444;
-    --warning: #f59e0b;
+    --border-color: #dfe8e3;
+    --text-main: #222222;
+    --text-muted: #606575;
+    --accent: #0da487;
+    --accent-light: #239698;
+    --accent-hover: #47c5ad;
+    --accent-dark: #006a3a;
+    --accent-glow: rgba(13, 164, 135, 0.12);
+    --success: #059669;
+    --danger: #e63946;
+    --warning: #ffb321;
+    --rate: #ffb321;
 
     height: 100%;
     width: 100%;
@@ -28,15 +31,17 @@
 
 @media (prefers-color-scheme: dark) {
     .gunma-dashboard {
-        --bg-main: #0b1120;
-        --bg-sidebar: #111827;
-        --bg-card: #1e293b;
-        --border-color: #334155;
-        --text-main: #f1f5f9;
-        --text-muted: #94a3b8;
-        --accent: #6366f1;
-        --accent-light: #818cf8;
-        --accent-glow: rgba(99, 102, 241, 0.18);
+        --bg-main: #0b1712;
+        --bg-sidebar: #10231b;
+        --bg-card: #163026;
+        --border-color: #244537;
+        --text-main: #e8f5ef;
+        --text-muted: #8bb3a2;
+        --accent: #0da487;
+        --accent-light: #47c5ad;
+        --accent-hover: #47c5ad;
+        --accent-dark: #059669;
+        --accent-glow: rgba(13, 164, 135, 0.2);
     }
 }
 
@@ -898,7 +903,7 @@
     flex-shrink: 0;
 }
 
-.stat-icon.chats { background: #e0f2fe; color: #0369a1; }
+.stat-icon.chats { background: var(--accent-glow); color: var(--accent); }
 .stat-icon.active { background: #dcfce7; color: #15803d; }
 .stat-icon.manual { background: #fef9c3; color: #a16207; }
 .stat-icon.tickets { background: #fee2e2; color: #b91c1c; }
@@ -1253,7 +1258,7 @@
     border-radius: 10px !important;
     overflow: hidden !important;
     transition: all 0.2s !important;
-    color: #0f172a !important;
+    color: #222222 !important;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
 }
 
