@@ -1,27 +1,29 @@
 @import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;500;600;700;800&display=swap');
 
 .gunma-dashboard {
-    /* Clean white / light-gray base — matches the regular website look. */
-    --bg-main: #f5f7f6;
+    /* Monochrome white/black/gray — matches the plain look used across the
+       entire admin dashboard (white cards, light-gray page, black text,
+       gray borders). */
+    --bg-main: #f5f5f5;
     --bg-sidebar: #ffffff;
     --bg-card: #ffffff;
-    --bg-subtle: #f0f2f1;
-    --border-color: #e5e7eb;
-    --border-strong: #d7dbdf;
-    --text-main: #1f2937;
-    --text-secondary: #4b5563;
-    --text-muted: #6b7280;
-    /* Brand accent (website green) — harmonized with dark-gray text. */
-    --accent: #0da487;
-    --accent-light: #2aa892;
-    --accent-hover: #47c5ad;
-    --accent-dark: #087f6a;
-    --accent-glow: rgba(13, 164, 135, 0.10);
+    --bg-subtle: #fafafa;
+    --border-color: #d9d9d9;
+    --border-strong: #bfbfbf;
+    --text-main: #1f1f1f;
+    --text-secondary: #434343;
+    --text-muted: #8c8c8c;
+    /* Neutral (near-black) accent instead of any brand color. */
+    --accent: #262626;
+    --accent-light: #434343;
+    --accent-hover: #434343;
+    --accent-dark: #000000;
+    --accent-glow: rgba(0, 0, 0, 0.06);
     --accent-contrast: #ffffff;
-    --success: #059669;
-    --danger: #e63946;
-    --warning: #f59e0b;
-    --rate: #ffb321;
+    --success: #52c41a;
+    --danger: #ff4d4f;
+    --warning: #faad14;
+    --rate: #faad14;
 
     height: 100%;
     width: 100%;
@@ -37,22 +39,22 @@
 
 @media (prefers-color-scheme: dark) {
     .gunma-dashboard {
-        /* Neutral dark gray (not dark blue), text harmonized. */
-        --bg-main: #17191c;
-        --bg-sidebar: #1f2226;
-        --bg-card: #22262b;
-        --bg-subtle: #2a2e33;
-        --border-color: #34383e;
-        --border-strong: #454a51;
-        --text-main: #eceff1;
-        --text-secondary: #c3c9cf;
-        --text-muted: #9aa1a8;
-        --accent: #0da487;
-        --accent-light: #2aa892;
-        --accent-hover: #47c5ad;
-        --accent-dark: #0a8f75;
-        --accent-glow: rgba(13, 164, 135, 0.18);
-        --accent-contrast: #ffffff;
+        /* Dark monochrome (near-black), text light. */
+        --bg-main: #141414;
+        --bg-sidebar: #1f1f1f;
+        --bg-card: #1f1f1f;
+        --bg-subtle: #262626;
+        --border-color: #424242;
+        --border-strong: #595959;
+        --text-main: #ffffff;
+        --text-secondary: #d9d9d9;
+        --text-muted: #8c8c8c;
+        --accent: #e6e6e6;
+        --accent-light: #bfbfbf;
+        --accent-hover: #bfbfbf;
+        --accent-dark: #ffffff;
+        --accent-glow: rgba(255, 255, 255, 0.08);
+        --accent-contrast: #141414;
     }
 }
 
