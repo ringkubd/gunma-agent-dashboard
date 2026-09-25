@@ -1,25 +1,25 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;500;600;700;800&display=swap');
 
 .gunma-dashboard {
-    --bg-main: #effaf5;
+    --bg-main: #fbf6f0;
     --bg-sidebar: #ffffff;
     --bg-card: #ffffff;
-    --border-color: #dfe8e3;
-    --text-main: #222222;
-    --text-muted: #606575;
-    --accent: #0da487;
-    --accent-light: #239698;
-    --accent-hover: #47c5ad;
-    --accent-dark: #006a3a;
-    --accent-glow: rgba(13, 164, 135, 0.12);
-    --success: #059669;
+    --border-color: #e9ecef;
+    --text-main: #333333;
+    --text-muted: #878a99;
+    --accent: #1677ff;
+    --accent-light: #4099ff;
+    --accent-hover: #2679fa;
+    --accent-dark: #0958d9;
+    --accent-glow: rgba(22, 119, 255, 0.12);
+    --success: #2ed8b6;
     --danger: #e63946;
     --warning: #ffb321;
     --rate: #ffb321;
 
     height: 100%;
     width: 100%;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Roboto Condensed', system-ui, -apple-system, sans-serif;
     color: var(--text-main);
     background: var(--bg-main);
     display: flex;
@@ -31,17 +31,17 @@
 
 @media (prefers-color-scheme: dark) {
     .gunma-dashboard {
-        --bg-main: #0b1712;
-        --bg-sidebar: #10231b;
-        --bg-card: #163026;
-        --border-color: #244537;
-        --text-main: #e8f5ef;
-        --text-muted: #8bb3a2;
-        --accent: #0da487;
-        --accent-light: #47c5ad;
-        --accent-hover: #47c5ad;
-        --accent-dark: #059669;
-        --accent-glow: rgba(13, 164, 135, 0.2);
+        --bg-main: #0f1626;
+        --bg-sidebar: #1b263b;
+        --bg-card: #1b263b;
+        --border-color: #2a3a52;
+        --text-main: #edf2f4;
+        --text-muted: #9aa7c7;
+        --accent: #1677ff;
+        --accent-light: #4099ff;
+        --accent-hover: #2679fa;
+        --accent-dark: #0958d9;
+        --accent-glow: rgba(22, 119, 255, 0.2);
     }
 }
 
