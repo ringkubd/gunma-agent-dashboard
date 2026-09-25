@@ -208,23 +208,23 @@ export const AgentSettings: React.FC<AgentSettingsProps> = ({
 
     const inputStyle: React.CSSProperties = {
         width: '100%', padding: '9px 12px', borderRadius: 8,
-        border: '1px solid #e2e8f0', fontSize: 13, fontFamily: 'inherit',
+        border: '1px solid var(--border-color)', fontSize: 13, fontFamily: 'inherit',
     };
     const labelStyle: React.CSSProperties = { display: 'block', fontWeight: 600, margin: '12px 0 6px', fontSize: 13 };
 
     return (
         <div className="gunma-settings" style={{ padding: 24, maxWidth: 900 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-                <Bot size={28} style={{ color: '#10b981' }} />
+                <Bot size={28} style={{ color: 'var(--accent)' }} />
                 <div>
                     <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>Agent Settings</h2>
-                    <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: 13 }}>
+                    <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: 13 }}>
                         Control how Piku responds and which AI provider powers it.
                     </p>
                 </div>
                 <button
                     onClick={() => { fetchPrompts(); if (showProviderSettings) fetchProvider(); }}
-                    style={{ marginLeft: 'auto', background: 'none', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 12px', cursor: 'pointer' }}
+                    style={{ marginLeft: 'auto', background: 'none', border: '1px solid var(--border-color)', borderRadius: 8, padding: '8px 12px', cursor: 'pointer' }}
                     title="Refresh"
                 >
                     <RefreshCw size={16} />
@@ -237,9 +237,9 @@ export const AgentSettings: React.FC<AgentSettingsProps> = ({
                         onClick={() => setActiveTab('prompt')}
                         style={{
                             padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600,
-                            border: '1px solid #e2e8f0',
-                            background: activeTab === 'prompt' ? '#10b981' : '#fff',
-                            color: activeTab === 'prompt' ? '#fff' : '#0f172a',
+                            border: '1px solid var(--border-color)',
+                            background: activeTab === 'prompt' ? 'var(--accent)' : '#fff',
+                            color: activeTab === 'prompt' ? '#fff' : 'var(--text-main)',
                         }}
                     >
                         <Bot size={14} style={{ verticalAlign: '-2px', marginRight: 6 }} /> Prompt
@@ -248,9 +248,9 @@ export const AgentSettings: React.FC<AgentSettingsProps> = ({
                         onClick={() => setActiveTab('provider')}
                         style={{
                             padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600,
-                            border: '1px solid #e2e8f0',
-                            background: activeTab === 'provider' ? '#10b981' : '#fff',
-                            color: activeTab === 'provider' ? '#fff' : '#0f172a',
+                            border: '1px solid var(--border-color)',
+                            background: activeTab === 'provider' ? 'var(--accent)' : '#fff',
+                            color: activeTab === 'provider' ? '#fff' : 'var(--text-main)',
                         }}
                     >
                         <Cpu size={14} style={{ verticalAlign: '-2px', marginRight: 6 }} /> Provider & Model
@@ -273,13 +273,13 @@ export const AgentSettings: React.FC<AgentSettingsProps> = ({
                                     onClick={() => setResponseStyle(opt.value)}
                                     style={{
                                         flex: 1, padding: '12px 16px', borderRadius: 10,
-                                        border: `2px solid ${responseStyle === opt.value ? '#10b981' : '#e2e8f0'}`,
-                                        background: responseStyle === opt.value ? '#f0fdf4' : '#fff',
+                                        border: `2px solid ${responseStyle === opt.value ? 'var(--accent)' : 'var(--border-color)'}`,
+                                        background: responseStyle === opt.value ? 'var(--accent-glow)' : '#fff',
                                         cursor: 'pointer', textAlign: 'left',
                                     }}
                                 >
                                     <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 2 }}>{opt.label}</div>
-                                    <div style={{ color: '#64748b', fontSize: 12 }}>{opt.desc}</div>
+                                    <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>{opt.desc}</div>
                                 </button>
                             ))}
                         </div>
@@ -288,14 +288,14 @@ export const AgentSettings: React.FC<AgentSettingsProps> = ({
                     <div style={{ marginBottom: 24 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                             <label style={{ fontWeight: 600, fontSize: 14 }}>System Prompt</label>
-                            <span style={{ fontSize: 12, color: charCount > 3000 ? '#ef4444' : '#64748b' }}>{charCount} characters</span>
+                            <span style={{ fontSize: 12, color: charCount > 3000 ? '#ef4444' : 'var(--text-muted)' }}>{charCount} characters</span>
                         </div>
                         <textarea
                             value={systemPrompt}
                             onChange={(e) => setSystemPrompt(e.target.value)}
                             style={{
                                 width: '100%', minHeight: 400, padding: 16, borderRadius: 10,
-                                border: '1px solid #e2e8f0', fontSize: 13, lineHeight: 1.6,
+                                border: '1px solid var(--border-color)', fontSize: 13, lineHeight: 1.6,
                                 fontFamily: 'monospace', resize: 'vertical',
                             }}
                             placeholder="Enter the system prompt that defines Piku's behavior..."
@@ -308,7 +308,7 @@ export const AgentSettings: React.FC<AgentSettingsProps> = ({
                             disabled={saving}
                             style={{
                                 display: 'flex', alignItems: 'center', gap: 8, padding: '10px 24px', borderRadius: 10,
-                                border: 'none', background: '#10b981', color: '#fff', fontWeight: 600,
+                                border: 'none', background: 'var(--accent)', color: '#fff', fontWeight: 600,
                                 cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1,
                             }}
                         >
@@ -331,8 +331,8 @@ export const AgentSettings: React.FC<AgentSettingsProps> = ({
                                     onClick={() => applyPreset(key)}
                                     style={{
                                         padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 13,
-                                        border: `2px solid ${provider.llm_provider === key ? '#10b981' : '#e2e8f0'}`,
-                                        background: provider.llm_provider === key ? '#f0fdf4' : '#fff',
+                                        border: `2px solid ${provider.llm_provider === key ? 'var(--accent)' : 'var(--border-color)'}`,
+                                        background: provider.llm_provider === key ? 'var(--accent-glow)' : '#fff',
                                     }}
                                 >
                                     {p.label}
@@ -378,7 +378,7 @@ export const AgentSettings: React.FC<AgentSettingsProps> = ({
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, maxHeight: 140, overflow: 'auto' }}>
                                 {models.map((m) => (
                                     <button key={m} onClick={() => setProvider({ ...provider, llm_model: m })}
-                                        style={{ padding: '4px 10px', borderRadius: 999, border: '1px solid #e2e8f0', background: '#f8fafc', fontSize: 12, cursor: 'pointer' }}>
+                                        style={{ padding: '4px 10px', borderRadius: 999, border: '1px solid var(--border-color)', background: 'var(--bg-subtle)', fontSize: 12, cursor: 'pointer' }}>
                                         {m}
                                     </button>
                                 ))}
@@ -388,22 +388,22 @@ export const AgentSettings: React.FC<AgentSettingsProps> = ({
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 20, flexWrap: 'wrap' }}>
                         <button onClick={handleSaveProvider} disabled={saving}
-                            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 22px', borderRadius: 10, border: 'none', background: '#10b981', color: '#fff', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer' }}>
+                            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 22px', borderRadius: 10, border: 'none', background: 'var(--accent)', color: '#fff', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer' }}>
                             {saving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} Save Provider
                         </button>
                         <button onClick={handleLoadModels} disabled={busyAction === 'models'}
-                            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 18px', borderRadius: 10, border: '1px solid #e2e8f0', background: '#fff', fontWeight: 600, cursor: 'pointer' }}>
+                            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 18px', borderRadius: 10, border: '1px solid var(--border-color)', background: '#fff', fontWeight: 600, cursor: 'pointer' }}>
                             {busyAction === 'models' ? <Loader2 className="animate-spin" size={16} /> : <Plug size={16} />} Load Models
                         </button>
                         <button onClick={handleTest} disabled={busyAction === 'test'}
-                            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 18px', borderRadius: 10, border: '1px solid #e2e8f0', background: '#fff', fontWeight: 600, cursor: 'pointer' }}>
+                            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 18px', borderRadius: 10, border: '1px solid var(--border-color)', background: '#fff', fontWeight: 600, cursor: 'pointer' }}>
                             {busyAction === 'test' ? <Loader2 className="animate-spin" size={16} /> : <Zap size={16} />} Test Connection
                         </button>
                     </div>
 
                     {testResult && (
                         <div style={{ marginTop: 12, padding: '8px 14px', borderRadius: 8, fontSize: 13,
-                            background: testResult.ok ? '#f0fdf4' : '#fef2f2',
+                            background: testResult.ok ? 'var(--accent-glow)' : '#fef2f2',
                             color: testResult.ok ? '#166534' : '#991b1b' }}>
                             {testResult.text}
                         </div>
@@ -419,7 +419,7 @@ function MessagePill({ message }: { message: { type: 'success' | 'error'; text: 
     return (
         <div style={{
             display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 8,
-            background: message.type === 'success' ? '#f0fdf4' : '#fef2f2',
+            background: message.type === 'success' ? 'var(--accent-glow)' : '#fef2f2',
             color: message.type === 'success' ? '#166534' : '#991b1b', fontSize: 13,
         }}>
             {message.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
