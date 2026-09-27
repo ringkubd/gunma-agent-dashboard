@@ -684,46 +684,128 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
                                     </div>
                                 </div>
 
-                                {showSidePanel && (
-                                    <aside className="customer-info-panel">
-                                        <div className="panel-section">
-                                            <div className="section-header"><UserCircle size={18} /><h4>Customer Insight</h4></div>
-                                            <div className="profile-card">
-                                                <div className="info-row"><label>Channel</label><span className="status-badge">{activeSession.channel}</span></div>
-                                                <div className="info-row"><label>Name</label><span>{activeSession.customer_name || 'Guest'}</span></div>
-                                                <div className="info-row"><label>Email</label><span>{activeSession.customer_email || '—'}</span></div>
-                                                <div className="info-row"><label>Visitor ID</label><span className="visitor-id">{activeSession.visitor_id}</span></div>
-                                                <div className="info-row"><label>Priority</label><span>{(activeSession as any).metadata?.priority_score || 0}%</span></div>
-                                                <div className="info-row"><label>Status</label><span className={`status-badge ${activeSession.status}`}>{activeSession.status}</span></div>
+                                <aside className={`customer-info-panel ${showSidePanel ? '' : 'collapsed'}`}>
+                                    {/* Profile header */}
+                                    <div className="cip-hero">
+                                        <div className="initials-circle large" style={{ backgroundColor: getInitialsColor(activeSession.customer_name) }}>
+                                            {getInitials(activeSession.customer_name)}
+                                        </div>
+                                        <div className="cip-hero-info">
+                                            <h3>{profile?.customer?.name || activeSession.customer_name || 'Guest User'}</h3>
+                                            <span>{profile?.customer?.email || activeSession.customer_email || `Visitor ${activeSession.visitor_id}`}</span>
+                                            <div className="cip-badges">
+                                                <span className="channel-tag">{activeSession.channel}</span>
+                                                {profile?.is_guest
+                                                    ? <span className="ended-tag">Guest</span>
+                                                    : <span className="cip-badge-ok">Registered</span>}
+                                                {activeSession.status === 'active' && <span className="cip-badge-live">● Live</span>}
                                             </div>
                                         </div>
-                                        <div className="panel-section">
-                                            <div className="section-header"><CreditCard size={18} /><h4>Loyalty & Wallet</h4></div>
-                                            <div className="points-card">
-                                                <div className="point-stat"><span className="stat-value">--</span><label>Points</label></div>
-                                                <div className="point-stat"><span className="stat-value">--</span><label>Wallet</label></div>
+                                    </div>
+
+                                    {profileLoading && !profile ? (
+                                        <div className="cip-loading"><Loader2 className="animate-spin" size={18} /><span>Loading profile…</span></div>
+                                    ) : (
+                                        <div className="cip-scroll">
+                                            {/* Metrics */}
+                                            <div className="cip-stats">
+                                                <div className="cip-stat"><span className="v">{profile?.metrics?.orders_count ?? 0}</span><span className="l">Orders</span></div>
+                                                <div className="cip-stat"><span className="v">{moneyFmt(profile?.metrics?.total_spent)}</span><span className="l">Spent</span></div>
+                                                <div className="cip-stat"><span className="v">{moneyFmt(profile?.metrics?.avg_order)}</span><span className="l">Avg</span></div>
+                                                <div className="cip-stat"><span className="v">{profile?.customer?.points ?? 0}</span><span className="l">Points</span></div>
                                             </div>
-                                            <p className="hint-text">Connect customer account to see loyalty data.</p>
-                                        </div>
-                                        <div className="panel-section">
-                                            <div className="section-header"><ShoppingCart size={18} /><h4>Shopping Cart</h4></div>
-                                            <div className="cart-list empty"><p>No active cart items.</p></div>
-                                        </div>
-                                        {activeSession.status === 'ended' && (
-                                            <div className="panel-section">
-                                                <div className="section-header"><CheckCircle2 size={18} /><h4>Feedback</h4></div>
-                                                <div className="profile-card">
-                                                    <div className="info-row"><label>Rating</label><span>{(activeSession as any).feedback_rating ? '⭐'.repeat((activeSession as any).feedback_rating) : '—'}</span></div>
-                                                    {(activeSession as any).feedback_comment && (
-                                                        <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: 4 }}>
-                                                            {(activeSession as any).feedback_comment}
-                                                        </div>
-                                                    )}
+
+                                            {/* Contact */}
+                                            <div className="cip-section">
+                                                <div className="section-header"><UserCircle size={15} /><h4>Contact</h4></div>
+                                                <div className="info-row"><label>Phone</label><span>{profile?.customer?.phone || '—'}</span></div>
+                                                <div className="info-row"><label>Country</label><span>{profile?.customer?.country || '—'}</span></div>
+                                                <div className="info-row"><label>Language</label><span>{profile?.customer?.native_language || '—'}</span></div>
+                                                <div className="info-row"><label>Wallet</label><span>{moneyFmt(profile?.customer?.wallet)}</span></div>
+                                            </div>
+
+                                            {/* Cart — live */}
+                                            <div className="cip-section">
+                                                <div className="section-header"><ShoppingCart size={15} /><h4>Cart ({profile?.cart?.length ?? 0})</h4></div>
+                                                {(profile?.cart?.length ?? 0) === 0 ? (
+                                                    <p className="cip-empty">No active cart items.</p>
+                                                ) : (
+                                                    <div className="cip-list">
+                                                        {profile.cart.slice(0, 5).map((c: any, i: number) => (
+                                                            <div key={i} className="cip-line">
+                                                                <span className="t">{c.title || `#${c.product_id}`}</span>
+                                                                <span className="m">×{c.quantity} · {moneyFmt(c.line_total)}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Recent orders */}
+                                            <div className="cip-section">
+                                                <div className="section-header"><Package size={15} /><h4>Recent Orders ({(profile?.orders || []).length})</h4></div>
+                                                {(profile?.orders?.length ?? 0) === 0 ? (
+                                                    <p className="cip-empty">No orders yet.</p>
+                                                ) : (
+                                                    <div className="cip-list">
+                                                        {profile.orders.slice(0, 4).map((o: any) => (
+                                                            <div key={o.id} className="cip-line">
+                                                                <span className="t">#{o.id}</span>
+                                                                <span className="m">{o.status} · {moneyFmt(o.total_amount)}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Behaviour */}
+                                            <div className="cip-section">
+                                                <div className="section-header"><Activity size={15} /><h4>Behaviour</h4></div>
+                                                <div className="info-row"><label>Last seen</label><span>{profile?.activity?.last_seen ? timeAgo(profile.activity.last_seen) : '—'}</span></div>
+                                                <div className="cip-chips">
+                                                    {Object.entries(profile?.activity?.by_action || {}).slice(0, 6).map(([k, v]) => (
+                                                        <span key={k} className="cip-chip">{k}: {String(v)}</span>
+                                                    ))}
                                                 </div>
+                                                {(profile?.activity?.recent_searches?.length ?? 0) > 0 && (
+                                                    <div className="cip-chips" style={{ marginTop: 6 }}>
+                                                        {profile.activity.recent_searches.slice(0, 4).map((s: string, i: number) => (
+                                                            <span key={i} className="cip-chip ghost">🔍 {s}</span>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
-                                    </aside>
-                                )}
+
+                                            {/* Addresses */}
+                                            <div className="cip-section">
+                                                <div className="section-header"><MapPin size={15} /><h4>Addresses ({(profile?.addresses || []).length})</h4></div>
+                                                {(profile?.addresses?.length ?? 0) === 0 ? (
+                                                    <p className="cip-empty">No saved addresses.</p>
+                                                ) : (
+                                                    <div className="cip-list">
+                                                        {profile.addresses.slice(0, 3).map((a: any, i: number) => (
+                                                            <div key={i} className="cip-line">
+                                                                <span className="t">{a.name} {a.is_default ? '⭐' : ''}</span>
+                                                                <span className="m">{a.postal_code} {a.city}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {activeSession.status === 'ended' && (
+                                                <div className="cip-section">
+                                                    <div className="section-header"><CheckCircle2 size={15} /><h4>Feedback</h4></div>
+                                                    <div className="info-row"><label>Rating</label><span>{(activeSession as any).feedback_rating ? '⭐'.repeat((activeSession as any).feedback_rating) : '—'}</span></div>
+                                                </div>
+                                            )}
+
+                                            <button className="cip-full-btn" onClick={() => setShowProfile(true)}>
+                                                <Eye size={15} /> Open full profile
+                                            </button>
+                                        </div>
+                                    )}
+                                </aside>
                             </div>
                         ) : (
                             <div className="empty-monitor">
