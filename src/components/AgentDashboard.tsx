@@ -247,6 +247,13 @@ function timeAgo(dateStr: string): string {
     return `${d}d ago`;
 }
 
+const LIVE_WINDOW_MS = 5 * 60 * 1000;
+
+function isSessionInitiallyLive(s: { updated_at: string; status: string }): boolean {
+    if (s.status !== 'active') return false;
+    return Date.now() - new Date(s.updated_at).getTime() < LIVE_WINDOW_MS;
+}
+
 const QUICK_REPLIES = [
     { label: 'Greeting', text: 'Hello! How can I assist you today?' },
     { label: 'Order Status', text: 'Let me check your order status. Could you please provide your order ID?' },
@@ -522,7 +529,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
                                                 </div>
                                             )}
                                             {unreadCounts[s.id] > 0 && <span className="unread-badge">{unreadCounts[s.id]}</span>}
-                                            {s.status === 'active' && <span className="status-dot online" />}
+                                            {s.status === 'active' && isSessionInitiallyLive(s) && <span className="status-dot online" title="Active in the last 5 minutes" />}
                                         </div>
                                         <div className="session-info">
                                             <div className="session-top">
