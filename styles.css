@@ -37,26 +37,9 @@
     line-height: 1.5;
 }
 
-@media (prefers-color-scheme: dark) {
-    .gunma-dashboard {
-        /* Dark monochrome (near-black), text light. */
-        --bg-main: #141414;
-        --bg-sidebar: #1f1f1f;
-        --bg-card: #1f1f1f;
-        --bg-subtle: #262626;
-        --border-color: #424242;
-        --border-strong: #595959;
-        --text-main: #ffffff;
-        --text-secondary: #d9d9d9;
-        --text-muted: #8c8c8c;
-        --accent: #e6e6e6;
-        --accent-light: #bfbfbf;
-        --accent-hover: #bfbfbf;
-        --accent-dark: #ffffff;
-        --accent-glow: rgba(255, 255, 255, 0.08);
-        --accent-contrast: #141414;
-    }
-}
+/* The host admin is light-only (Ant Design default), so the Agent Dashboard
+   stays light regardless of the OS colour scheme. Do NOT add a dark-mode
+   override here — it causes white-on-white text when the OS is dark. */
 
 /* ── Layout ── */
 .dashboard-layout {
