@@ -31,6 +31,7 @@ export function useMonitor(apiUrl, options = {}) {
         sessions: options.routes?.sessions ?? `${routePrefix}/sessions`,
         tickets: options.routes?.tickets ?? `${routePrefix}/tickets`,
         stats: options.routes?.stats ?? `${routePrefix}/stats`,
+        doodle: options.routes?.doodle ?? `${routePrefix}/settings/doodle`,
         endSession: options.routes?.endSession ?? '/api/chat/sessions',
         broadcastAuth: options.pusher?.authEndpoint ?? '/api/broadcasting/auth',
     };
@@ -374,6 +375,27 @@ export function useMonitor(apiUrl, options = {}) {
             setProfile(null);
         }
     }, [apiUrl]);
+    /** Piku doodle on/off — server Agent Setting. */
+    const getDoodleSetting = useCallback(async () => {
+        try {
+            const res = await api.get(routes.doodle);
+            return !!res?.data?.data?.doodle_enabled;
+        }
+        catch (err) {
+            console.warn('[useMonitor] doodle setting fetch failed', err);
+            return null;
+        }
+    }, [api, routes.doodle]);
+    const setDoodleSetting = useCallback(async (enabled) => {
+        try {
+            await api.put(routes.doodle, { enabled });
+            return true;
+        }
+        catch (err) {
+            console.warn('[useMonitor] doodle setting save failed', err);
+            return false;
+        }
+    }, [api, routes.doodle]);
     return {
         sessions,
         activeSession,
@@ -399,5 +421,7 @@ export function useMonitor(apiUrl, options = {}) {
         endSession,
         profile,
         profileLoading,
+        getDoodleSetting,
+        setDoodleSetting,
     };
 }

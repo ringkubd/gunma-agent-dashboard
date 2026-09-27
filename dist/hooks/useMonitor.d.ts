@@ -108,4 +108,6 @@ export declare function useMonitor(apiUrl: string, options?: UseMonitorOptions):
     endSession: (sessionId: string) => Promise<void>;
     profile: any;
     profileLoading: boolean;
+    getDoodleSetting: () => Promise<boolean | null>;
+    setDoodleSetting: (enabled: boolean) => Promise<boolean>;
 };

@@ -305,50 +305,28 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
         endSession,
         profile,
         profileLoading,
+        getDoodleSetting,
+        setDoodleSetting,
     } = useMonitor(apiUrl, { pollInterval, pusher, auth, broadcastChannel, routes });
 
     const [view, setView] = useState<'chats' | 'tickets'>('chats');
     const [doodleOn, setDoodleOn] = useState<boolean | null>(null);
     const [doodleBusy, setDoodleBusy] = useState(false);
 
-    // Piku doodle on/off — server-side Agent Settings (agent_settings table).
-    const doodleSettingsBase = (routes?.prefix || 'api/admin/chat');
+    // Piku doodle on/off — server Agent Setting. Uses the hook's axios client
+    // so Sanctum CSRF + bearer token are handled automatically.
     const fetchDoodleSetting = useCallback(async () => {
-        try {
-            const res = await fetch(`${apiUrl}/${doodleSettingsBase}/settings/doodle`, {
-                headers: { Accept: 'application/json', Authorization: `Bearer ${auth?.getToken?.() ?? ''}` },
-                credentials: 'include',
-            });
-            if (!res.ok) throw 0;
-            const j = await res.json();
-            setDoodleOn(!!j?.data?.doodle_enabled);
-        } catch {
-            setDoodleOn(null);
-        }
-    }, [apiUrl, doodleSettingsBase, auth]);
+        setDoodleOn(await getDoodleSetting());
+    }, [getDoodleSetting]);
 
     const toggleDoodleSetting = useCallback(async () => {
         setDoodleBusy(true);
         const next = !(doodleOn ?? true);
         setDoodleOn(next); // optimistic
-        try {
-            await fetch(`${apiUrl}/${doodleSettingsBase}/settings/doodle`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                    Authorization: `Bearer ${auth?.getToken?.() ?? ''}`,
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                credentials: 'include',
-                body: JSON.stringify({ enabled: next }),
-            });
-        } catch {
-            setDoodleOn(!next); // revert on failure
-        } finally {
-            setDoodleBusy(false);
-        }
-    }, [apiUrl, doodleSettingsBase, auth, doodleOn]);
+        const ok = await setDoodleSetting(next);
+        if (!ok) setDoodleOn(!next); // revert on failure
+        setDoodleBusy(false);
+    }, [doodleOn, setDoodleSetting]);
 
     const [manualText, setManualText] = useState('');
     const [search, setSearch] = useState('');
