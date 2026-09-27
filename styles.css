@@ -1909,3 +1909,15 @@
     .stat-card .stat-value { font-size: 1.1rem; }
     .cip-stats { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ── Piku Doodle agent-settings toggle ── */
+.doodle-toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: 10px;
+  border: 1px solid #e5e7eb; background: #fff; color: #6b7280;
+  font-family: 'Roboto Condensed', Arial, sans-serif; font-size: 13px;
+  cursor: pointer; transition: all .15s ease; margin-left: auto; margin-right: 10px;
+}
+.doodle-toggle.on { border-color: #10b98133; background: #10b981; color: #fff; }
+.doodle-toggle:disabled { opacity: .6; cursor: not-allowed; }
+.doodle-toggle:not(:disabled):hover { transform: translateY(-1px); }

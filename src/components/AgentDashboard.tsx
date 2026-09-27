@@ -35,6 +35,7 @@ import {
     Star,
     Activity,
     Package,
+    Sparkles,
 } from 'lucide-react';
 
 interface CustomerProfileModalProps {
@@ -307,6 +308,48 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
     } = useMonitor(apiUrl, { pollInterval, pusher, auth, broadcastChannel, routes });
 
     const [view, setView] = useState<'chats' | 'tickets'>('chats');
+    const [doodleOn, setDoodleOn] = useState<boolean | null>(null);
+    const [doodleBusy, setDoodleBusy] = useState(false);
+
+    // Piku doodle on/off — server-side Agent Settings (agent_settings table).
+    const doodleSettingsBase = (routes?.prefix || 'api/admin/chat');
+    const fetchDoodleSetting = useCallback(async () => {
+        try {
+            const res = await fetch(`${apiUrl}/${doodleSettingsBase}/settings/doodle`, {
+                headers: { Accept: 'application/json', Authorization: `Bearer ${auth?.getToken?.() ?? ''}` },
+                credentials: 'include',
+            });
+            if (!res.ok) throw 0;
+            const j = await res.json();
+            setDoodleOn(!!j?.data?.doodle_enabled);
+        } catch {
+            setDoodleOn(null);
+        }
+    }, [apiUrl, doodleSettingsBase, auth]);
+
+    const toggleDoodleSetting = useCallback(async () => {
+        setDoodleBusy(true);
+        const next = !(doodleOn ?? true);
+        setDoodleOn(next); // optimistic
+        try {
+            await fetch(`${apiUrl}/${doodleSettingsBase}/settings/doodle`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    Authorization: `Bearer ${auth?.getToken?.() ?? ''}`,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'include',
+                body: JSON.stringify({ enabled: next }),
+            });
+        } catch {
+            setDoodleOn(!next); // revert on failure
+        } finally {
+            setDoodleBusy(false);
+        }
+    }, [apiUrl, doodleSettingsBase, auth, doodleOn]);
+
     const [manualText, setManualText] = useState('');
     const [search, setSearch] = useState('');
     const [filter, setFilter] = useState<SessionFilter>('all');
@@ -327,6 +370,10 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
         }
         setPrevSessionsLen(sessions.length);
     }, [sessions.length]);
+
+    useEffect(() => {
+        void fetchDoodleSetting();
+    }, [fetchDoodleSetting]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -486,6 +533,14 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
                             <Bot className="brand-icon" />
                             <h2>Piku Monitor</h2>
                         </div>
+                        <button
+                            className={`doodle-toggle ${doodleOn ? 'on' : ''}`}
+                            onClick={toggleDoodleSetting}
+                            disabled={doodleBusy || doodleOn === null}
+                            title="Piku Doodle on the storefront (Agent Settings)"
+                        >
+                            <Sparkles size={15} /> Doodle: {doodleOn === null ? '…' : doodleOn ? 'On' : 'Off'}
+                        </button>
                         <div className="view-switcher">
                             <button className={`view-btn ${view === 'chats' ? 'active' : ''}`} onClick={() => setView('chats')}>
                                 <MessageSquare size={16} /> Chats
