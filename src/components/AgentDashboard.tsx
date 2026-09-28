@@ -36,6 +36,7 @@ import {
     Activity,
     Package,
     Sparkles,
+    Power,
 } from 'lucide-react';
 
 interface CustomerProfileModalProps {
@@ -307,17 +308,34 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
         profileLoading,
         getDoodleSetting,
         setDoodleSetting,
+        getWidgetSetting,
+        setWidgetSetting,
     } = useMonitor(apiUrl, { pollInterval, pusher, auth, broadcastChannel, routes });
 
     const [view, setView] = useState<'chats' | 'tickets'>('chats');
     const [doodleOn, setDoodleOn] = useState<boolean | null>(null);
     const [doodleBusy, setDoodleBusy] = useState(false);
+    const [widgetOn, setWidgetOn] = useState<boolean | null>(null);
+    const [widgetBusy, setWidgetBusy] = useState(false);
 
     // Piku doodle on/off — server Agent Setting. Uses the hook's axios client
     // so Sanctum CSRF + bearer token are handled automatically.
     const fetchDoodleSetting = useCallback(async () => {
         setDoodleOn(await getDoodleSetting());
     }, [getDoodleSetting]);
+
+    const fetchWidgetSetting = useCallback(async () => {
+        setWidgetOn(await getWidgetSetting());
+    }, [getWidgetSetting]);
+
+    const toggleWidgetSetting = useCallback(async () => {
+        setWidgetBusy(true);
+        const next = !(widgetOn ?? true);
+        setWidgetOn(next);
+        const ok = await setWidgetSetting(next);
+        if (!ok) setWidgetOn(!next);
+        setWidgetBusy(false);
+    }, [widgetOn, setWidgetSetting]);
 
     const toggleDoodleSetting = useCallback(async () => {
         setDoodleBusy(true);
@@ -351,7 +369,8 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
 
     useEffect(() => {
         void fetchDoodleSetting();
-    }, [fetchDoodleSetting]);
+        void fetchWidgetSetting();
+    }, [fetchDoodleSetting, fetchWidgetSetting]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -511,6 +530,14 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
                             <Bot className="brand-icon" />
                             <h2>Piku Monitor</h2>
                         </div>
+                        <button
+                            className={`doodle-toggle widget-switch ${widgetOn ? 'on' : 'good'} ${widgetOn === false ? 'off' : ''}`}
+                            onClick={toggleWidgetSetting}
+                            disabled={widgetBusy || widgetOn === null}
+                            title="Piku chat widget on the storefront (Agent Settings)"
+                        >
+                            <Power size={15} /> Piku: {widgetOn === null ? '…' : widgetOn ? 'On' : 'Off'}
+                        </button>
                         <button
                             className={`doodle-toggle ${doodleOn ? 'on' : ''}`}
                             onClick={toggleDoodleSetting}

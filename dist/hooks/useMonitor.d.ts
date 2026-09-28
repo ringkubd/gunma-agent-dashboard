@@ -110,4 +110,6 @@ export declare function useMonitor(apiUrl: string, options?: UseMonitorOptions):
     profileLoading: boolean;
     getDoodleSetting: () => Promise<boolean | null>;
     setDoodleSetting: (enabled: boolean) => Promise<boolean>;
+    getWidgetSetting: () => Promise<boolean | null>;
+    setWidgetSetting: (enabled: boolean) => Promise<boolean>;
 };

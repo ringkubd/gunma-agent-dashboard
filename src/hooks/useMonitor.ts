@@ -134,6 +134,7 @@ export function useMonitor(apiUrl: string, options: UseMonitorOptions = {}) {
         tickets:     options.routes?.tickets     ?? `${routePrefix}/tickets`,
         stats:       options.routes?.stats       ?? `${routePrefix}/stats`,
         doodle:      (options.routes as any)?.doodle ?? `${routePrefix}/settings/doodle`,
+        widget:      (options.routes as any)?.widget ?? `${routePrefix}/settings/widget`,
         endSession:  options.routes?.endSession  ?? '/api/chat/sessions',
         broadcastAuth: options.pusher?.authEndpoint ?? '/api/broadcasting/auth',
     };
@@ -532,6 +533,27 @@ export function useMonitor(apiUrl: string, options: UseMonitorOptions = {}) {
         }
     }, [api, routes.doodle]);
 
+    /** Piku chat widget master switch — server Agent Setting. */
+    const getWidgetSetting = useCallback(async (): Promise<boolean | null> => {
+        try {
+            const res = await api.get(routes.widget);
+            return !!res?.data?.data?.widget_enabled;
+        } catch (err) {
+            console.warn('[useMonitor] widget setting fetch failed', err);
+            return null;
+        }
+    }, [api, routes.widget]);
+
+    const setWidgetSetting = useCallback(async (enabled: boolean): Promise<boolean> => {
+        try {
+            await api.put(routes.widget, { enabled });
+            return true;
+        } catch (err) {
+            console.warn('[useMonitor] widget setting save failed', err);
+            return false;
+        }
+    }, [api, routes.widget]);
+
     return {
         sessions,
         activeSession,
@@ -559,5 +581,7 @@ export function useMonitor(apiUrl: string, options: UseMonitorOptions = {}) {
         profileLoading,
         getDoodleSetting,
         setDoodleSetting,
+        getWidgetSetting,
+        setWidgetSetting,
     };
 }

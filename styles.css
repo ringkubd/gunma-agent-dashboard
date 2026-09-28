@@ -1921,3 +1921,7 @@
 .doodle-toggle.on { border-color: #10b98133; background: #10b981; color: #fff; }
 .doodle-toggle:disabled { opacity: .6; cursor: not-allowed; }
 .doodle-toggle:not(:disabled):hover { transform: translateY(-1px); }
+
+/* ── Piku widget master switch (independent from Doodle) ── */
+.doodle-toggle.widget-switch.on { background: #10b981; border-color: #10b98133; color: #fff; }
+.doodle-toggle.widget-switch.off { background: #fff; border-color: #ef444433; color: #ef4444; }
