@@ -511,39 +511,6 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
 
     return (
         <div className="gunma-dashboard">
-            {stats && (
-                <div className="stats-bar">
-                    <div className="stat-card">
-                        <div className="stat-icon chats"><MessageSquare size={20} /></div>
-                        <div className="stat-data">
-                            <span className="stat-value">{stats.total_sessions}</span>
-                            <span className="stat-label">Total Chats</span>
-                        </div>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-icon active"><Bot size={20} /></div>
-                        <div className="stat-data">
-                            <span className="stat-value">{stats.active_sessions}</span>
-                            <span className="stat-label">AI Handled</span>
-                        </div>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-icon manual"><User size={20} /></div>
-                        <div className="stat-data">
-                            <span className="stat-value">{stats.manual_sessions}</span>
-                            <span className="stat-label">Manual Mode</span>
-                        </div>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-icon tickets"><AlertCircle size={20} /></div>
-                        <div className="stat-data">
-                            <span className="stat-value">{stats.pending_tickets}</span>
-                            <span className="stat-label">Pending Tickets</span>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             <div className="dashboard-layout">
                 <aside className="session-sidebar">
                     <div className="sidebar-header">
@@ -551,6 +518,14 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
                             <Bot className="brand-icon" />
                             <h2>Piku Monitor</h2>
                         </div>
+                        {stats && (
+                            <div className="stats-mini" title="Live counters">
+                                <span className="sm-pill"><MessageSquare size={12} /> {stats.total_sessions} chats</span>
+                                <span className="sm-pill ai"><Bot size={12} /> {stats.active_sessions} AI</span>
+                                <span className="sm-pill manual"><User size={12} /> {stats.manual_sessions} manual</span>
+                                <span className="sm-pill tickets"><AlertCircle size={12} /> {stats.pending_tickets} tickets</span>
+                            </div>
+                        )}
                         <button
                             className={`doodle-toggle widget-switch ${widgetOn ? 'on' : 'good'} ${widgetOn === false ? 'off' : ''}`}
                             onClick={toggleWidgetSetting}
