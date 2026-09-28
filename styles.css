@@ -1940,3 +1940,10 @@
   display: block; height: 100%; border-radius: 3px;
   background: linear-gradient(90deg, #10b981, #f59e0b); transition: width .4s ease;
 }
+
+/* ── Piku bulk marker chip (dashboard) ── */
+.message-bubble .gunma-bulk-chip {
+  display: inline-block; padding: 4px 10px; border-radius: 8px;
+  background: rgba(16,185,129,.15); border: 1px solid rgba(16,185,129,.45);
+  color: #065f46; font-size: 12px; font-weight: 600;
+}

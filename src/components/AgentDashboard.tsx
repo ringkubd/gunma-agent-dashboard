@@ -317,7 +317,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
     const [doodleBusy, setDoodleBusy] = useState(false);
     const [widgetOn, setWidgetOn] = useState<boolean | null>(null);
     const [widgetBusy, setWidgetBusy] = useState(false);
-    const [coverage, setCoverage] = useState<{ blurbs?: { covered_products?: number; active_products?: number; pct?: number }; products_indexed?: number; kb_entries?: number } | null>(null);
+    const [coverage, setCoverage] = useState<{ blurbs?: { covered_products?: number; active_products?: number; pct?: number }; products_indexed?: number; kb_entries?: number; doodle_clicks_24h?: number } | null>(null);
 
     // Piku doodle on/off — server Agent Setting. Uses the hook's axios client
     // so Sanctum CSRF + bearer token are handled automatically.
@@ -423,6 +423,9 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
         );
         const bulkPattern = /\*?\*?\[?🛒 Add ALL Ingredients? to Cart\]?\(?[^)]*\)?\*?\*?/gi;
         text = text.replace(bulkPattern, '');
+        // Piku's {{BULK_BUTTON}} marker → friendly chip (mirrors widget behaviour)
+        text = text.replace(/\*{0,2}\{\{BULK_BUTTON\}\}\*{0,2}/g,
+            '<span class="gunma-bulk-chip">🛒 Shopping list — "add all" available</span>');
         text = text.replace(/&(?!amp;)/g, '&amp;').replace(/<(?!(\/?(h[1-6]|br|strong|em|ul|li|p|div|span|hr|img|a|code|button)\b))/g, '&lt;');
         text = text.replace(/^### (.+)$/gm, '<h4 class="gunma-h4">$1</h4>').replace(/^## (.+)$/gm, '<h3 class="gunma-h3">$1</h3>').replace(/^# (.+)$/gm, '<h2 class="gunma-h2">$1</h2>');
         text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*([^*\n]+?)\*/g, '<em>$1</em>');
@@ -574,7 +577,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
                         </div>
                         {view === 'chats' && coverage && (
                             <div className="piku-coverage" title="Piku AI coverage (auto-refreshes every 2 min)">
-                                ✨ Product blurbs {coverage.blurbs?.pct ?? 0}% ({coverage.blurbs?.covered_products ?? 0}/{coverage.blurbs?.active_products ?? 0}) • Indexed {coverage.products_indexed ?? 0} • KB {coverage.kb_entries ?? 0}
+                                ✨ Product blurbs {coverage.blurbs?.pct ?? 0}% ({coverage.blurbs?.covered_products ?? 0}/{coverage.blurbs?.active_products ?? 0}) • Indexed {coverage.products_indexed ?? 0} • KB {coverage.kb_entries ?? 0} • 🙋 Chef click 24h: {coverage.doodle_clicks_24h ?? 0}
                                 <div className="piku-coverage-bar"><span style={{ width: `${Math.min(100, Number(coverage.blurbs?.pct ?? 0))}%` }} /></div>
                             </div>
                         )}
@@ -970,7 +973,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
                                                         <span className="message-sender">{m.role === 'user' ? 'Customer' : 'Piku AI'}</span>
                                                         <span className="timestamp">{new Date(m.created_at).toLocaleTimeString()}</span>
                                                     </div>
-                                                    <div className="message-bubble" style={m.role === 'assistant' ? { background: 'var(--accent)', color: 'white' } : {}}>{m.content}</div>
+                                                    <div className="message-bubble" style={m.role === 'assistant' ? { background: 'var(--accent)', color: 'white' } : {}} dangerouslySetInnerHTML={{ __html: renderMarkdown(m.content) }} />
                                                 </div>
                                             </div>
                                         ))}
