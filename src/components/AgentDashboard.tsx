@@ -317,6 +317,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
     const [doodleBusy, setDoodleBusy] = useState(false);
     const [widgetOn, setWidgetOn] = useState<boolean | null>(null);
     const [widgetBusy, setWidgetBusy] = useState(false);
+    const [coverage, setCoverage] = useState<{ blurbs?: { covered_products?: number; active_products?: number; pct?: number }; products_indexed?: number; kb_entries?: number } | null>(null);
 
     // Piku doodle on/off — server Agent Setting. Uses the hook's axios client
     // so Sanctum CSRF + bearer token are handled automatically.
@@ -327,6 +328,20 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
     const fetchWidgetSetting = useCallback(async () => {
         setWidgetOn(await getWidgetSetting());
     }, [getWidgetSetting]);
+
+    // Piku AI coverage panel (product blurbs %, products indexed, KB entries).
+    const fetchCoverage = useCallback(async () => {
+        try {
+            const res = await fetch(`${apiUrl}/api/admin/chat/piku-coverage`, {
+                headers: { Accept: 'application/json', Authorization: `Bearer ${auth?.getToken?.() ?? ''}` },
+                credentials: 'include',
+            });
+            if (res.ok) {
+                const j = await res.json();
+                setCoverage(j?.data ?? null);
+            }
+        } catch { /* optional panel */ }
+    }, [apiUrl, auth]);
 
     const toggleWidgetSetting = useCallback(async () => {
         setWidgetBusy(true);
@@ -370,7 +385,10 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
     useEffect(() => {
         void fetchDoodleSetting();
         void fetchWidgetSetting();
-    }, [fetchDoodleSetting, fetchWidgetSetting]);
+        void fetchCoverage();
+        const iv = window.setInterval(() => void fetchCoverage(), 120000);
+        return () => window.clearInterval(iv);
+    }, [fetchDoodleSetting, fetchWidgetSetting, fetchCoverage]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -554,6 +572,12 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
                                 <AlertCircle size={16} /> Tickets
                             </button>
                         </div>
+                        {view === 'chats' && coverage && (
+                            <div className="piku-coverage" title="Piku AI coverage (auto-refreshes every 2 min)">
+                                ✨ Product blurbs {coverage.blurbs?.pct ?? 0}% ({coverage.blurbs?.covered_products ?? 0}/{coverage.blurbs?.active_products ?? 0}) • Indexed {coverage.products_indexed ?? 0} • KB {coverage.kb_entries ?? 0}
+                                <div className="piku-coverage-bar"><span style={{ width: `${Math.min(100, Number(coverage.blurbs?.pct ?? 0))}%` }} /></div>
+                            </div>
+                        )}
                         {view === 'chats' && (
                             <div className="sidebar-controls">
                                 <div className="search-box">

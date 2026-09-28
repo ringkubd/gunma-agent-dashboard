@@ -1925,3 +1925,18 @@
 /* ── Piku widget master switch (independent from Doodle) ── */
 .doodle-toggle.widget-switch.on { background: #10b981; border-color: #10b98133; color: #fff; }
 .doodle-toggle.widget-switch.off { background: #fff; border-color: #ef444433; color: #ef4444; }
+
+/* ── Piku AI coverage strip ── */
+.piku-coverage {
+  display: flex; flex-direction: column; gap: 4px;
+  background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 10px;
+  padding: 8px 12px; margin: 0 12px 8px;
+  font-family: 'Roboto Condensed', Arial, sans-serif; font-size: 12px; color: #475569;
+}
+.piku-coverage-bar {
+  height: 5px; border-radius: 3px; background: #e5e7eb; overflow: hidden;
+}
+.piku-coverage-bar span {
+  display: block; height: 100%; border-radius: 3px;
+  background: linear-gradient(90deg, #10b981, #f59e0b); transition: width .4s ease;
+}
