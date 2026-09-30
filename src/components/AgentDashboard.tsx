@@ -505,7 +505,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
     const filterTabs: { key: SessionFilter; label: string }[] = [
         { key: 'all', label: 'All' },
         { key: 'active', label: 'AI Active' },
-        { key: 'manual', label: 'Manual' },
+        { key: 'manual', label: 'Waiting for human' },
         { key: 'ended', label: 'Ended' },
     ];
 
@@ -522,7 +522,14 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
                             <div className="stats-mini" title="Live counters">
                                 <span className="sm-pill"><MessageSquare size={12} /> {stats.total_sessions} chats</span>
                                 <span className="sm-pill ai"><Bot size={12} /> {stats.active_sessions} AI</span>
-                                <span className="sm-pill manual"><User size={12} /> {stats.manual_sessions} manual</span>
+                                <span
+                                    className={`sm-pill manual ${stats.manual_sessions > 0 ? 'sm-pill--alert' : ''}`}
+                                    role="button"
+                                    title="Chats waiting for a human — click to view"
+                                    onClick={() => { setView('chats'); setFilter('manual'); }}
+                                >
+                                    <User size={12} /> {stats.manual_sessions} waiting for human
+                                </span>
                                 <span className="sm-pill tickets"><AlertCircle size={12} /> {stats.pending_tickets} tickets</span>
                             </div>
                         )}

@@ -1962,3 +1962,15 @@
 .sm-pill.ai { color: #0b8a75; background: #eefaf6; border-color: #cdeee5; }
 .sm-pill.manual { color: #a16207; background: #fdf8e8; border-color: #f2e9c8; }
 .sm-pill.tickets { color: #b91c1c; background: #fdeeee; border-color: #f3d3d3; }
+
+/* ── Waiting-for-human alert styling ── */
+.sm-pill--alert {
+  background: #fdeeee !important;
+  border-color: #f3c9c9 !important;
+  color: #b91c1c !important;
+  animation: gnaPulse 1.8s ease-in-out infinite;
+}
+@keyframes gnaPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(185, 28, 28, 0); }
+  50% { box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.14); }
+}
