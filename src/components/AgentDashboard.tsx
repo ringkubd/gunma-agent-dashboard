@@ -589,7 +589,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
                         ) : view === 'chats' ? (
                             <div className="session-list">
                                 {filteredSessions.map(s => (
-                                    <div key={s.id} className={`session-item ${activeSession?.id === s.id ? 'active' : ''}`}
+                                    <div key={s.id} className={`session-item ${activeSession?.id === s.id ? 'active' : ''} ${s.status === 'ended' ? 'session-item--ended' : ''}`}
                                         onClick={() => selectSession(s)}>
                                         <div className="avatar">
                                             {s.channel === 'email' ? <Mail size={24} /> : (
@@ -610,6 +610,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ apiUrl, pollInte
                                                 <span className={`channel-tag ${s.channel}`}>{s.channel}</span>
                                                 {(s as any).metadata?.priority_score > 50 && <span className="priority-tag critical">Urgent</span>}
                                                 {typingSessions[s.id] && <span className="typing-tag">Typing...</span>}
+                                                {s.status === 'ended' && <span className="ended-tag">Ended</span>}
                                                 {!s.is_ai_enabled && s.status === 'active' && <span className="manual-tag">Manual</span>}
                                             </div>
                                         </div>
